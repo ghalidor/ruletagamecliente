@@ -952,6 +952,41 @@ html, body {
     min-width: 40vmin;
 }
 
+/* ------------------------------------------------- Velo de espera --- */
+/* Se muestra mientras el servidor responde. El caso mas largo es buscar el
+   documento: primero en nuestra base y, si es DNI y no esta, en el padron
+   externo, que puede tardar hasta 4 segundos. Sin esto el cliente cree que
+   el boton no funciono y lo toca de nuevo. */
+.velo-espera {
+    position: fixed;
+    inset: 0;
+    z-index: 340;
+    display: none;
+    place-items: center;
+    background: rgba(0, 0, 0, .74);
+}
+
+    .velo-espera.visible {
+        display: grid;
+    }
+
+    .velo-espera .contenido {
+        text-align: center;
+    }
+
+    .velo-espera .aro-carga {
+        width: clamp(40px, 9vmin, 84px);
+        height: clamp(40px, 9vmin, 84px);
+        margin: 0 auto;
+    }
+
+    .velo-espera p {
+        margin: clamp(10px, 2vmin, 22px) 0 0;
+        color: var(--texto-tenue);
+        font-size: clamp(12px, 2.1vmin, 20px);
+        letter-spacing: .04em;
+    }
+
 /* ------------------------------------------- Canales de notificacion --- */
 .notificaciones {
     width: 100%;

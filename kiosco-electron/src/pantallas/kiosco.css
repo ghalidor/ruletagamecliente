@@ -169,14 +169,36 @@ body.sin-cursor, body.sin-cursor * { cursor: none !important; }
                            0 1.4vmin 3vmin rgba(0, 0, 0, .6); }
 }
 
-/* Rotulo de la rueda desbloqueada */
-.toca-lista { color: var(--verde); text-shadow: 0 0 3vmin rgba(39, 204, 10, .6); }
+/* Rotulo de la rueda desbloqueada.
+   Va debajo de la rueda, como el resto de la invitacion: --rueda-abajo lo
+   publica app.js con el borde real, que solo JS conoce. */
+.toca-lista {
+    color: var(--verde);
+    text-shadow: 0 0 2vmin rgba(39, 204, 10, .55);
+}
 
+/* La cuenta atras acompana al rotulo, no se queda arriba.
+   Antes heredaba la posicion de .invitacion, que se movio a top: 0 para
+   colocar el nombre de la ruleta bajo el borde: la cuenta se fue con ella y
+   terminaba encima del puntero. */
 .cuenta-bloqueo {
-    margin-top: 1.2vmin;
+    position: absolute;
+    top: calc(var(--rueda-abajo, 70%) + 5px + 8vmin);
+    left: 50%;
+    transform: translateX(-50%);
+
     font-size: 1.9vmin;
     color: var(--texto-tenue);
     letter-spacing: .06em;
+    white-space: nowrap;
+    margin: 0;
+}
+
+/* En horizontal la rueda casi toca el fondo: se apoya en el viewport. */
+[data-orientacion="horizontal"] .cuenta-bloqueo {
+    top: auto;
+    bottom: .4vmin;
+    font-size: 1.7vmin;
 }
 
 /* -------------------------------------------------------------- Standby --- */
@@ -763,6 +785,59 @@ body.sin-cursor, body.sin-cursor * { cursor: none !important; }
 /* Con un solo boton visible, que ocupe mas ancho: dos botones y uno oculto
    dejaba el Continuar descentrado y pequeño. */
 .botones-uno .boton { min-width: 40vmin; }
+
+/* ---------------------------------------------------- Barras de scroll --- */
+/* La del sistema es gris claro y rompe el ambiente oscuro de la ruleta.
+   Ademas, en una pantalla tactil nadie la arrastra: se desplaza con el dedo,
+   asi que puede ser fina y discreta. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(240, 196, 25, .45) transparent;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+
+::-webkit-scrollbar-track { background: transparent; }
+
+::-webkit-scrollbar-thumb {
+    background: rgba(240, 196, 25, .38);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(240, 196, 25, .65); background-clip: content-box; }
+
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ------------------------------------------------- Velo de espera --- */
+/* Se muestra mientras el servidor responde. El caso mas largo es buscar el
+   documento: primero en nuestra base y, si es DNI y no esta, en el padron
+   externo, que puede tardar hasta 4 segundos. Sin esto el cliente cree que
+   el boton no funciono y lo toca de nuevo. */
+.velo-espera {
+    position: fixed;
+    inset: 0;
+    z-index: 340;
+    display: none;
+    place-items: center;
+    background: rgba(0, 0, 0, .74);
+}
+.velo-espera.visible { display: grid; }
+
+.velo-espera .contenido { text-align: center; }
+
+.velo-espera .aro-carga {
+    width: clamp(40px, 9vmin, 84px);
+    height: clamp(40px, 9vmin, 84px);
+    margin: 0 auto;
+}
+
+.velo-espera p {
+    margin: clamp(10px, 2vmin, 22px) 0 0;
+    color: var(--texto-tenue);
+    font-size: clamp(12px, 2.1vmin, 20px);
+    letter-spacing: .04em;
+}
 
 /* ------------------------------------------- Canales de notificacion --- */
 .notificaciones {

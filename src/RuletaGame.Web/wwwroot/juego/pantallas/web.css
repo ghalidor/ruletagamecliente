@@ -219,3 +219,6 @@ html, body {
         font-size: clamp(12px, 1.9vh, 18px);
         letter-spacing: .04em;
     }
+
+/* Las barras de scroll se declaran en linea dentro de index.html: ahi no
+   dependen de que el navegador haya recargado esta hoja. */

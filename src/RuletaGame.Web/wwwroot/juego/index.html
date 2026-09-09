@@ -15,6 +15,50 @@
     <title>Ruleta</title>
     <link rel="stylesheet" href="/juego/pantallas/kiosco.css" />
     <link rel="stylesheet" href="/juego/pantallas/web.css" />
+
+    <!-- Las barras de scroll van aqui, en linea, y no en un .css: un estilo
+         incrustado siempre se aplica y no depende de que el navegador haya
+         recargado la hoja. Ya perdimos tiempo con eso.
+
+         Chrome 121+ da prioridad a scrollbar-width/scrollbar-color sobre los
+         pseudo-elementos ::-webkit-*, asi que se declaran los dos: el moderno
+         para navegadores nuevos y el webkit como respaldo. -->
+    <style>
+        html, body, .capa, .capa-modal,
+        .tarjeta-datos, .tarjeta-registro, .tarjeta-acceso, .tarjeta-dialogo {
+            scrollbar-width: thin;
+            scrollbar-color: #C79A05 rgba(255, 255, 255, .06);
+        }
+
+        ::-webkit-scrollbar {
+            width: 9px;
+            height: 9px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, .06);
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #C79A05;
+            border-radius: 999px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #F0C419;
+            }
+
+        /* Las flechas del sistema no tienen sentido en una pantalla tactil:
+           nadie las va a pulsar y rompen el aspecto. */
+        ::-webkit-scrollbar-button {
+            display: none;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+    </style>
 </head>
 <body>
 
@@ -44,7 +88,7 @@
 
     <!-- Cabecera y pie: solo se muestran en pantalla vertical alta -->
     <img id="cabecera" class="pieza-marco" src="/juego/assets/imagenes/cabecera.png" alt="" hidden />
-    <img id="pie"      class="pieza-marco pieza-pie" src="/juego/assets/imagenes/pie.png" alt="" hidden />
+    <img id="pie" class="pieza-marco pieza-pie" src="/juego/assets/imagenes/pie.png" alt="" hidden />
 
     <!-- ================================================== Carga inicial -->
     <div id="capaCarga" class="capa capa-visible">

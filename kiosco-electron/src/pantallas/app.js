@@ -87,7 +87,8 @@ async function iniciar() {
     ajustarMarco();
 
     app.senal.alCambiarRuleta     = alRecibirCambioDeRuleta;
-    app.senal.alActualizarTajadas = alRecibirCambioDeTajadas;
+    app.senal.alActualizarTajadas   = alRecibirCambioDeTajadas;
+    app.senal.alCambiarConfiguracion = alRecibirCambioDeConfiguracion;
     await app.senal.conectar();
 
     await sincronizarPantalla();
@@ -317,6 +318,22 @@ function alRecibirCambioDeTajadas(ruletaId) {
     }
 }
 
+/**
+ * El gestor cambio un ajuste. La configuracion viaja dentro de los datos de la
+ * ruleta, asi que se relee esa misma ruleta para traerla actualizada.
+ */
+function alRecibirCambioDeConfiguracion() {
+    if (!app.ruletaId) return;
+
+    if (app.maquina.es(Estado.STANDBY, Estado.LISTO)) {
+        cargarRuleta(app.ruletaId);
+    } else {
+        // Hay alguien jugando: se aplica al volver a espera.
+        app.ruletaPendiente = app.ruletaId;
+        console.log('Cambio de ajustes en espera hasta volver a standby');
+    }
+}
+
 function aplicarPendiente() {
     if (app.ruletaPendiente === undefined) return false;
 
@@ -507,6 +524,26 @@ function documentoValido(valor) {
     return true;
 }
 
+/**
+ * Velo de espera. Se usa en las operaciones que consultan al servidor y que
+ * el cliente percibe como lentas: buscar el documento puede tardar hasta 4
+ * segundos si hay que preguntarle al padron externo.
+ */
+function mostrarEspera(visible, texto = 'Buscando tus datos...') {
+    let velo = $('veloEspera');
+
+    if (!velo) {
+        velo = document.createElement('div');
+        velo.id = 'veloEspera';
+        velo.className = 'velo-espera';
+        velo.innerHTML = '<div class="contenido"><div class="aro-carga"></div><p></p></div>';
+        document.body.appendChild(velo);
+    }
+
+    velo.querySelector('p').textContent = texto;
+    velo.classList.toggle('visible', visible);
+}
+
 /** Si el documento ya jugo antes, se traen sus datos y no reescribe todo. */
 async function pasarADatos() {
     const numero = app.teclado.valor.trim().toUpperCase();
@@ -519,6 +556,21 @@ async function pasarADatos() {
 
     app.numeroDocumento = numero;
 
+    // Doble bloqueo: el velo tapa la pantalla y el boton se deshabilita. Sin
+    // esto, cuatro segundos de espera sin senal hacen que el cliente vuelva a
+    // tocar y se dispare la consulta dos veces.
+    $('btnSiguienteDatos').disabled = true;
+    mostrarEspera(true);
+
+    try {
+        await buscarYPasar(numero);
+    } finally {
+        mostrarEspera(false);
+        $('btnSiguienteDatos').disabled = false;
+    }
+}
+
+async function buscarYPasar(numero) {
     const respuesta = await app.api.buscarCliente(app.tipoDocumento, numero);
 
     if (respuesta.ok && respuesta.datos?.encontrado) {
@@ -546,7 +598,10 @@ async function pasarADatos() {
 
         // No estaba en nuestra base: se intenta el padron externo. Solo con
         // DNI, que es el unico tipo que ese servicio conoce.
-        if (app.tipoDocumento === 1) await autocompletarDesdePadron(numero);
+        if (app.tipoDocumento === 1) {
+            mostrarEspera(true, 'Consultando tus datos...');
+            await autocompletarDesdePadron(numero);
+        }
     }
 
     app.maquina.ir(Estado.DATOS);
@@ -732,6 +787,7 @@ async function guardarCliente() {
 
     $('btnGuardarCliente').disabled = true;
     $('errorDatos').textContent = '';
+    mostrarEspera(true, 'Guardando tus datos...');
 
     const respuesta = await app.api.registrarCliente({
         jugadaId:        app.jugadaActual.jugadaId,
@@ -748,6 +804,8 @@ async function guardarCliente() {
         aceptaLlamada:   app.cliente.canales.llamada,
         aceptaEmail:     app.cliente.canales.email
     });
+
+    mostrarEspera(false);
 
     if (respuesta.ok) {
         toaster('Tus datos se guardaron correctamente.', 'ok');
@@ -847,6 +905,10 @@ function alCambiarEstado(nuevo, anterior) {
 
             clearInterval(app.intervaloCierre);
             $('avisoTiempo')?.classList.remove('visible');
+
+            // Red de seguridad: si el timeout cerro el registro mientras una
+            // consulta seguia en curso, el velo quedaria tapando la pantalla.
+            $('veloEspera')?.classList.remove('visible');
 
             // Standby es silencio: la rueda esta bloqueada y en espera.
             app.sonidos.premio.detener();
