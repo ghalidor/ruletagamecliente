@@ -1,0 +1,16 @@
+LIBRERIA DE SIGNALR
+===================
+
+Descarga este archivo y guardalo aqui como signalr.min.js:
+
+  https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js
+
+O con npm:
+  npm i @microsoft/signalr
+  copiar node_modules/@microsoft/signalr/dist/browser/signalr.min.js a esta carpeta
+
+Va local y no por CDN porque el pedestal debe funcionar sin internet:
+solo necesita ver al servicio en localhost.
+
+Si el archivo falta, el kiosco igual arranca; pierde el aviso instantaneo
+de cambio de ruleta y cae al latido por HTTP.

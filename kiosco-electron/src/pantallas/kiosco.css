@@ -1,0 +1,1023 @@
+/* ============================================================================
+   S3K Kiosco - estilos del pedestal
+
+   Pantalla tactil vertical. Todo el dimensionado usa vmin para que funcione
+   igual en 1080x1920 que en cualquier otra resolucion del totem.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter+Tight:wght@400;600&display=swap');
+
+:root {
+    --oro:        #F0C419;
+    --oro-oscuro: #C79A05;
+    --rojo:       #D40108;
+    --verde:      #27CC0A;
+    --texto:      #FFFFFF;
+    --texto-tenue: rgba(255, 255, 255, 0.62);
+
+    --display: 'Archivo', system-ui, sans-serif;
+    --cuerpo:  'Inter Tight', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: var(--texto);
+    font-family: var(--cuerpo);
+
+    /* En un totem nadie debe poder seleccionar texto ni hacer zoom */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+body.sin-cursor, body.sin-cursor * { cursor: none !important; }
+
+#lienzo {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #221100 0%, #000000 72%);
+}
+
+/* Cabecera y pie: el original solo los mostraba en pantallas muy altas */
+.pieza-marco {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    max-width: 96vw;
+    pointer-events: none;
+    z-index: 2;
+}
+.pieza-pie { top: auto; bottom: 13px; }
+
+/* ---------------------------------------------------------------- Capas --- */
+.capa {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 5vmin;
+}
+
+.capa-visible { display: flex; }
+
+.capa-modal { background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(6px); }
+
+/* Standby no tapa la rueda: solo pone el texto encima */
+#capaStandby { background: transparent; pointer-events: none; }
+
+/* ---------------------------------------------------------------- Carga --- */
+.cargando { text-align: center; }
+
+.aro-carga {
+    width: 12vmin;
+    height: 12vmin;
+    margin: 0 auto 3vmin;
+    border: 0.9vmin solid rgba(240, 196, 25, 0.2);
+    border-top-color: var(--oro);
+    border-radius: 50%;
+    animation: girar-aro 0.9s linear infinite;
+}
+
+@keyframes girar-aro { to { transform: rotate(360deg); } }
+
+.cargando p { color: var(--texto-tenue); font-size: 2.4vmin; }
+
+/* ---------------------------------------------------------------- Textos --- */
+.mensaje-centro { text-align: center; max-width: 80vmin; }
+
+.mensaje-centro h1 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 6vmin;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 2vmin;
+}
+
+.mensaje-centro p { font-size: 2.8vmin; margin-bottom: 1vmin; }
+
+.icono-grande { font-size: 12vmin; margin-bottom: 2vmin; }
+
+.tenue { color: var(--texto-tenue); }
+
+/* ==================================================== Bloqueo de la rueda ==
+   La rueda se ve pero no gira hasta que alguien toca JUGAR. Es lo que evita
+   que un roce al pasar consuma una jugada.
+   =========================================================================== */
+
+/* Standby SI intercepta toques: ese es el punto del bloqueo. */
+#capaStandby { pointer-events: auto; }
+
+/* Listo NO los intercepta: los toques deben llegar al canvas. */
+#capaListo { background: transparent; pointer-events: none; }
+
+/* Velo tenue sobre la rueda: se nota que esta apagada sin ocultarla */
+.velo-bloqueo {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center,
+        rgba(0, 0, 0, .55) 0%,
+        rgba(0, 0, 0, .72) 55%,
+        rgba(0, 0, 0, .85) 100%);
+}
+
+/* Boton circular, sobre el centro de la rueda */
+.boton-jugar {
+    position: relative;
+    width: 34vmin;
+    height: 34vmin;
+    border-radius: 50%;
+    border: .5vmin solid var(--oro);
+    background: radial-gradient(circle at 38% 32%, #FFE9A0 0%, var(--oro) 45%, var(--oro-oscuro) 100%);
+    color: #16110A;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow:
+        0 0 0 1.2vmin rgba(240, 196, 25, .18),
+        0 0 9vmin rgba(240, 196, 25, .55),
+        0 1.4vmin 3vmin rgba(0, 0, 0, .6);
+    animation: pulso-jugar 2.4s ease-in-out infinite;
+    transition: transform .1s;
+}
+.boton-jugar:active { transform: scale(.95); }
+
+.boton-jugar-texto {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 7vmin;
+    letter-spacing: .06em;
+}
+
+@keyframes pulso-jugar {
+    0%, 100% { box-shadow: 0 0 0 1.2vmin rgba(240, 196, 25, .18),
+                           0 0 9vmin rgba(240, 196, 25, .5),
+                           0 1.4vmin 3vmin rgba(0, 0, 0, .6); }
+    50%      { box-shadow: 0 0 0 2.4vmin rgba(240, 196, 25, .08),
+                           0 0 14vmin rgba(240, 196, 25, .8),
+                           0 1.4vmin 3vmin rgba(0, 0, 0, .6); }
+}
+
+/* Rotulo de la rueda desbloqueada */
+.toca-lista { color: var(--verde); text-shadow: 0 0 3vmin rgba(39, 204, 10, .6); }
+
+.cuenta-bloqueo {
+    margin-top: 1.2vmin;
+    font-size: 1.9vmin;
+    color: var(--texto-tenue);
+    letter-spacing: .06em;
+}
+
+/* -------------------------------------------------------------- Standby --- */
+.invitacion {
+    position: absolute;
+    bottom: 9vmin;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.invitacion h1 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 4.4vmin;
+    text-transform: uppercase;
+    color: var(--oro);
+    text-shadow: 0 0 4vmin rgba(240, 196, 25, 0.55);
+    margin-bottom: 1.6vmin;
+}
+
+.toca {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 3.4vmin;
+    letter-spacing: 0.16em;
+    color: var(--texto);
+    animation: latir-invitacion 2.2s ease-in-out infinite;
+}
+
+@keyframes latir-invitacion {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.05); }
+}
+
+/* ------------------------------------------------------------- Premio --- */
+.tarjeta-premio, .tarjeta-registro, .tarjeta-datos {
+    /* Solo APARIENCIA. El dimensionado de cada tarjeta va aparte: compartirlo
+       hacia que el max-width del cartel de premio capara al del registro. */
+    background: linear-gradient(180deg, #1E1206 0%, #0B0705 100%);
+    border: 2px solid var(--oro);
+    border-radius: clamp(12px, 2.4vh, 26px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 6vh rgba(240, 196, 25, 0.24),
+        0 2vh 6vh rgba(0, 0, 0, 0.75);
+    text-align: center;
+    animation: aparecer 0.42s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+/* El cartel de premio si conviene que sea angosto: es un texto grande y
+   centrado, no un formulario. */
+.tarjeta-premio {
+    padding: 6vmin 5vmin;
+    max-width: 84vmin;
+    width: 100%;
+}
+
+@keyframes aparecer {
+    from { opacity: 0; transform: scale(0.86) translateY(4vmin); }
+    to   { opacity: 1; transform: none; }
+}
+
+.copa { width: 16vmin; margin-bottom: 2vmin; }
+
+.felicidades {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 6.4vmin;
+    color: var(--oro);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 3vmin rgba(240, 196, 25, 0.6);
+}
+
+.ganaste {
+    font-size: 3vmin;
+    color: var(--texto-tenue);
+    margin: 1.4vmin 0 2.4vmin;
+}
+
+.premio {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 8.5vmin;
+    line-height: 1.1;
+    color: var(--texto);
+    padding: 3vmin 2vmin;
+    margin-bottom: 3.4vmin;
+    background: rgba(240, 196, 25, 0.1);
+    border-radius: 2vmin;
+    word-break: break-word;
+}
+
+.cuenta-atras {
+    margin-top: 3vmin;
+    font-size: 2.2vmin;
+    color: var(--texto-tenue);
+}
+
+/* -------------------------------------------------------------- Botones --- */
+.botones {
+    display: flex;
+    gap: 2.4vmin;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.boton {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 3.2vmin;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--texto);
+
+    /* Area minima comoda para dedo */
+    min-width: 30vmin;
+    min-height: 11vmin;
+    padding: 2.4vmin 4vmin;
+
+    background: linear-gradient(180deg, #3A3A3A, #1C1C1C);
+    border: 0.3vmin solid rgba(255, 255, 255, 0.22);
+    border-radius: 2vmin;
+    box-shadow:
+        inset 0 0.3vmin 0 rgba(255, 255, 255, 0.22),
+        0 0.7vmin 0 rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    transition: transform 0.08s;
+}
+
+.boton:active { transform: translateY(0.7vmin); box-shadow: none; }
+
+.boton-oro {
+    background: linear-gradient(180deg, var(--oro), var(--oro-oscuro));
+    border-color: #8F6E00;
+    color: #16110A;
+}
+
+.boton:disabled { opacity: 0.4; }
+
+/* ------------------------------------------------------------- Registro --- */
+/* El tamano del titulo lo define "Registro adaptable"; aca solo el estilo. */
+.tarjeta-registro h2 {
+    font-family: var(--display);
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.casillas {
+    display: flex;
+    gap: 1.4vmin;
+    justify-content: center;
+    margin-bottom: 1.4vmin;
+}
+
+.casilla {
+    width: 7.5vmin;
+    height: 10vmin;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 5vmin;
+
+    background: rgba(0, 0, 0, 0.55);
+    border: 0.3vmin solid rgba(255, 255, 255, 0.2);
+    border-radius: 1.4vmin;
+    transition: border-color 0.18s, background 0.18s;
+}
+
+.casilla.llena {
+    border-color: var(--oro);
+    background: rgba(240, 196, 25, 0.14);
+}
+
+.sacudir { animation: sacudir 0.45s; }
+
+@keyframes sacudir {
+    0%, 100%     { transform: translateX(0); }
+    20%, 60%     { transform: translateX(-1.6vmin); }
+    40%, 80%     { transform: translateX(1.6vmin); }
+}
+
+.error-dni {
+    min-height: 3.4vmin;
+    color: #FF6B76;
+    font-size: 2.2vmin;
+    margin-bottom: 1.6vmin;
+}
+
+/* ============================================== Registro en dos pasos ======
+   Paso 1: tipo y numero de documento, con teclado numerico o alfanumerico
+   segun el tipo. Paso 2: nombre, apellidos y contacto.
+   =========================================================================== */
+
+/* --- Selector de tipo de documento --- */
+.tipos-documento {
+    display: flex;
+    gap: 1.4vmin;
+    justify-content: center;
+    margin-bottom: 2.6vmin;
+    flex-wrap: wrap;
+}
+
+.tipo-doc {
+    padding: 1.6vmin 2.6vmin;
+    border-radius: 1.4vmin;
+    border: .3vmin solid rgba(255, 255, 255, .2);
+    background: rgba(255, 255, 255, .05);
+    color: var(--texto-tenue);
+    font-family: var(--cuerpo);
+    font-weight: 600;
+    font-size: 2.1vmin;
+    cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+}
+.tipo-doc.activo {
+    border-color: var(--oro);
+    background: rgba(240, 196, 25, .16);
+    color: var(--oro);
+}
+
+/* --- Paso 2: campos a la izquierda, teclado a la derecha --- */
+/* La apariencia viene de la regla compartida; aca solo el acomodo interno. */
+.tarjeta-datos { text-align: left; }
+
+.datos-cabecera {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2vmin;
+    margin-bottom: 2.4vmin;
+}
+.datos-cabecera h2 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 3.6vmin;
+    text-transform: uppercase;
+}
+
+.etiqueta-documento {
+    padding: .8vmin 1.8vmin;
+    border-radius: 999px;
+    background: rgba(240, 196, 25, .16);
+    color: var(--oro);
+    font-family: ui-monospace, monospace;
+    font-size: 1.9vmin;
+    font-weight: 600;
+}
+
+.datos-cuerpo {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 3vmin;
+    align-items: start;
+}
+
+.datos-campos { display: flex; flex-direction: column; gap: 1.2vmin; }
+
+/* Cada campo es un boton: al tocarlo, el teclado escribe en el. Es mas
+   confiable que un input con foco, que en modo kiosco se comporta raro. */
+.campo-tactil {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .4vmin;
+    width: 100%;
+    padding: 1.3vmin 1.8vmin;
+    border-radius: 1.4vmin;
+    border: .3vmin solid rgba(255, 255, 255, .16);
+    background: rgba(0, 0, 0, .45);
+    color: var(--texto);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.campo-tactil.activo { border-color: var(--oro); background: rgba(240, 196, 25, .1); }
+.campo-tactil.invalido { border-color: #FF6B76; }
+
+.campo-etiqueta {
+    font-size: 1.7vmin;
+    color: var(--texto-tenue);
+    font-weight: 600;
+}
+.campo-etiqueta b  { color: var(--oro); }
+.campo-etiqueta em { font-style: normal; opacity: .7; font-weight: 400; }
+
+.campo-valor {
+    font-size: 2.5vmin;
+    font-weight: 600;
+    min-height: 3.4vmin;
+    word-break: break-all;
+}
+.campo-valor:empty::after { content: '—'; color: rgba(255, 255, 255, .22); }
+
+.teclado-titulo {
+    font-size: 1.8vmin;
+    color: var(--texto-tenue);
+    text-align: center;
+    margin-bottom: 1vmin;
+    letter-spacing: .06em;
+}
+
+/* --- Consentimiento --- */
+.consentimiento {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.6vmin;
+    margin-top: 2.4vmin;
+    padding: 1.6vmin 2vmin;
+    border-radius: 1.4vmin;
+    background: rgba(255, 255, 255, .05);
+    border: .3vmin solid transparent;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1.9vmin;
+    line-height: 1.5;
+    color: var(--texto-tenue);
+    transition: border-color .15s, background .15s;
+}
+.consentimiento input {
+    width: 3.4vmin;
+    height: 3.4vmin;
+    flex-shrink: 0;
+    accent-color: var(--oro);
+    cursor: pointer;
+}
+.consentimiento.marcado { background: rgba(240, 196, 25, .1); color: var(--texto); }
+.consentimiento.falta   { border-color: #FF6B76; }
+
+/* ================================================== Registro adaptable =====
+   Dos reglas que no se negocian:
+   1. La tarjeta nunca excede el viewport. Cero scroll horizontal.
+   2. Todo escala con la pantalla: en una grande se ve grande, en una chica
+      se encoge, pero mantiene las proporciones.
+
+   Las medidas usan vw para lo ancho y vh para lo alto, nunca vmin: en una
+   pantalla horizontal el vmin es la altura, y una tarjeta de "92vmin"
+   terminaba mas ancha que la pantalla.
+
+   Las teclas se dimensionan por ALTURA (vh) y no con aspect-ratio: con
+   aspect-ratio, una tarjeta angosta y alta producia teclas enormes que no
+   entraban a lo alto.
+   =========================================================================== */
+
+.tarjeta-registro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(6px, 1.4vh, 18px);
+
+    /* Crece con la pantalla en vez de quedarse chica en un monitor grande */
+    width: min(95vw, 760px);
+    max-height: 94vh;
+    padding: clamp(12px, 2.6vh, 30px) clamp(12px, 2.4vw, 30px);
+
+    overflow-x: hidden;
+    overflow-y: auto;
+    text-align: center;
+}
+
+.tarjeta-registro h2 {
+    font-size: clamp(15px, 3vh, 32px);
+    margin-bottom: 0;
+    line-height: 1.15;
+}
+
+.tarjeta-registro > .tenue { font-size: clamp(11px, 1.7vh, 17px); margin-bottom: 0; }
+
+/* --- Tipos de documento --- */
+.tipos-documento {
+    display: flex;
+    gap: clamp(4px, .7vw, 10px);
+    justify-content: center;
+    flex-wrap: nowrap;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.tipo-doc {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: clamp(6px, 1.2vh, 14px) clamp(3px, .8vw, 12px);
+    font-size: clamp(10px, 1.6vh, 17px);
+    border-radius: 9px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Casillas del documento -------------------------------------------
+   Aca SI conviene aspect-ratio: el ancho lo impone la cantidad de casillas
+   (8 para DNI, hasta 15 para otros) y la altura debe seguirlo. Sin esto,
+   con 15 casillas quedaban tiras de 21x62: altas y delgadisimas.
+
+   El tamano de letra usa unidades de contenedor y la cantidad real de
+   casillas, que app.js publica en --casillas.
+   --------------------------------------------------------------------- */
+.casillas {
+    display: flex;
+    gap: clamp(2px, .5vw, 7px);
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0;
+    container-type: inline-size;
+}
+
+.casilla {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: clamp(24px, 5vh, 50px);
+    aspect-ratio: 3 / 4;
+    max-height: 7.5vh;
+
+    display: grid;
+    place-items: center;
+    font-size: min(calc(52cqw / var(--casillas, 8)), 4vh);
+    border-radius: 7px;
+}
+
+.error-dni { min-height: 1.2em; font-size: clamp(10px, 1.6vh, 16px); margin-bottom: 0; }
+
+/* --- Teclados --------------------------------------------------------
+   La altura de la tecla manda; el ancho se reparte solo. Asi el teclado
+   nunca crece mas alto de lo que la pantalla permite.
+   --------------------------------------------------------------------- */
+.teclado { width: 100%; margin: 0; }
+
+.teclado-numerico {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(4px, .8vh, 11px);
+    width: min(100%, clamp(190px, 34vh, 330px));
+    margin: 0 auto;
+}
+
+.teclado-texto {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3px, .6vh, 8px);
+    width: 100%;
+}
+.teclado-fila { display: flex; gap: clamp(2px, .45vw, 6px); }
+
+.tecla {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+.teclado-numerico .tecla {
+    height: clamp(30px, 7.4vh, 74px);
+    font-size: clamp(15px, 3.2vh, 34px);
+}
+
+.teclado-texto .tecla {
+    height: clamp(24px, 5vh, 52px);
+    font-size: clamp(11px, 2.1vh, 23px);
+}
+.teclado-texto .tecla-espacio { flex: 5 1 0; }
+
+/* --- Botones ---------------------------------------------------------
+   flex: 0 1 auto y no 1 1 0: el ancho lo define el texto. Con 1 1 0 se
+   repartian el espacio por igual y "CONTINUAR" quedaba cortado.
+   --------------------------------------------------------------------- */
+.tarjeta-registro .botones,
+.tarjeta-datos .botones {
+    display: flex;
+    gap: clamp(6px, 1.2vw, 16px);
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.tarjeta-registro .boton,
+.tarjeta-datos .boton {
+    flex: 0 1 auto;
+    min-width: 0;
+    min-height: clamp(34px, 5.6vh, 58px);
+    padding: 0 clamp(12px, 2.2vw, 30px);
+    font-size: clamp(11px, 2vh, 22px);
+    white-space: nowrap;
+}
+
+/* ================== Dos columnas: solo con ancho real ==================
+   Por debajo de 1024px cada columna queda tan angosta que el teclado se
+   vuelve impracticable.
+   ======================================================================= */
+@media (min-width: 1024px) and (min-height: 520px) {
+    .tarjeta-registro {
+        display: grid;
+        /* Ocupa casi toda la pantalla. El tope de 1500 solo entra en juego en
+           monitores muy grandes, donde estirarla mas se veria desproporcionado. */
+        width: min(96vw, 1500px);
+        grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+        grid-template-areas:
+            "titulo  teclado"
+            "tipos   teclado"
+            "dni     teclado"
+            "error   teclado"
+            "botones teclado";
+        align-content: center;
+        gap: clamp(6px, 1.2vh, 16px) clamp(16px, 2.4vw, 44px);
+    }
+
+    .tarjeta-registro h2               { grid-area: titulo; }
+    .tarjeta-registro .tipos-documento { grid-area: tipos; }
+    .tarjeta-registro .casillas        { grid-area: dni; }
+    .tarjeta-registro .error-dni       { grid-area: error; }
+    .tarjeta-registro .botones         { grid-area: botones; }
+    .tarjeta-registro > .tenue         { display: none; }
+
+    .tarjeta-registro .teclado {
+        grid-area: teclado;
+        align-self: center;
+        justify-self: stretch;
+    }
+
+    /* Con dos columnas el teclado numerico tiene toda la columna derecha:
+       si se dejara angosto quedaria un hueco enorme al lado. */
+    .tarjeta-registro .teclado-numerico { width: min(100%, 480px); }
+}
+
+/* ====================== Paso 2: nombres y contacto ==================== */
+.tarjeta-datos {
+    width: min(95vw, 760px);
+    max-height: 94vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: clamp(12px, 2.6vh, 28px) clamp(12px, 2.4vw, 30px);
+}
+
+.datos-cuerpo { grid-template-columns: 1fr; gap: clamp(8px, 1.8vh, 22px); }
+
+.datos-cabecera h2 { font-size: clamp(15px, 2.8vh, 30px); }
+.etiqueta-documento { font-size: clamp(10px, 1.5vh, 16px); padding: 4px 11px; }
+
+.campo-tactil { padding: clamp(5px, 1vh, 12px) clamp(9px, 1.5vw, 18px); gap: 2px; }
+.campo-etiqueta { font-size: clamp(9px, 1.4vh, 15px); }
+.campo-valor { font-size: clamp(13px, 2.1vh, 24px); min-height: 1.3em; }
+
+.teclado-titulo { font-size: clamp(10px, 1.5vh, 16px); margin-bottom: 6px; }
+
+.consentimiento {
+    font-size: clamp(10px, 1.6vh, 17px);
+    padding: clamp(7px, 1.2vh, 15px) clamp(9px, 1.4vw, 18px);
+    margin-top: clamp(6px, 1.2vh, 16px);
+    gap: clamp(8px, 1.2vw, 16px);
+}
+.consentimiento input { width: clamp(18px, 2.8vh, 30px); height: clamp(18px, 2.8vh, 30px); }
+
+@media (min-width: 1024px) and (min-height: 520px) {
+    .tarjeta-datos { width: min(96vw, 1500px); }
+    .datos-cuerpo  { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+}
+
+/* Aviso de cierre por inactividad. Solo aparece en los ultimos segundos: si
+   se mostrara todo el tiempo, presionaria al cliente sin necesidad. */
+.aviso-tiempo {
+    position: fixed;
+    bottom: 3vmin;
+    left: 50%;
+    transform: translateX(-50%) translateY(2vmin);
+    z-index: 310;
+    padding: 1.4vmin 3vmin;
+    border-radius: 999px;
+    background: rgba(212, 1, 8, .92);
+    color: #fff;
+    font-size: 2.1vmin;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s, transform .25s;
+}
+.aviso-tiempo.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Con un solo boton visible, que ocupe mas ancho: dos botones y uno oculto
+   dejaba el Continuar descentrado y pequeño. */
+.botones-uno .boton { min-width: 40vmin; }
+
+/* ------------------------------------------- Canales de notificacion --- */
+.notificaciones {
+    width: 100%;
+    margin-top: clamp(8px, 1.4vh, 18px);
+    padding: clamp(10px, 1.6vh, 18px) clamp(10px, 1.6vw, 18px);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .05);
+    border: 2px solid transparent;
+    transition: border-color .15s;
+}
+.notificaciones.falta { border-color: #FF6B76; }
+
+.notif-titulo {
+    font-size: clamp(11px, 1.7vh, 17px);
+    color: var(--texto-tenue);
+    margin-bottom: clamp(7px, 1.2vh, 13px);
+    font-weight: 600;
+}
+
+.notif-opciones {
+    display: flex;
+    gap: clamp(5px, .8vw, 10px);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.notif-opcion {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, .6vw, 8px);
+    padding: clamp(7px, 1.2vh, 13px) clamp(9px, 1.4vw, 16px);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, .16);
+    background: rgba(0, 0, 0, .35);
+    color: var(--texto-tenue);
+    font-size: clamp(10px, 1.6vh, 16px);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+    white-space: nowrap;
+}
+
+.notif-opcion.marcada {
+    border-color: var(--oro);
+    background: rgba(240, 196, 25, .14);
+    color: var(--oro);
+}
+
+/* "No autorizo" en rojo: es la opcion opuesta y debe distinguirse de un
+   vistazo, no leerse con atencion. */
+.notif-negativa.marcada {
+    border-color: #FF6B76;
+    background: rgba(255, 107, 118, .14);
+    color: #FF9AA2;
+}
+
+.notif-opcion input {
+    width: clamp(15px, 2.2vh, 22px);
+    height: clamp(15px, 2.2vh, 22px);
+    accent-color: var(--oro);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.notif-negativa input { accent-color: #FF6B76; }
+
+.notif-icono { font-size: clamp(13px, 2vh, 20px); line-height: 1; }
+
+/* ------------------------------------------------------------- Toaster --- */
+.zona-toaster {
+    position: fixed;
+    top: 3vmin;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vmin;
+    align-items: center;
+    pointer-events: none;
+}
+
+.toaster {
+    display: flex;
+    align-items: center;
+    gap: 1.6vmin;
+    padding: 2vmin 3.4vmin;
+    border-radius: 1.6vmin;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 2.6vmin;
+    color: #0C1108;
+    box-shadow: 0 1.6vmin 4vmin rgba(0, 0, 0, .6);
+    animation: bajar-toaster .3s cubic-bezier(.2, .9, .3, 1.2) both;
+    max-width: 84vw;
+}
+.toaster-ok    { background: linear-gradient(180deg, #4ADE80, #16A34A); }
+.toaster-error { background: linear-gradient(180deg, #FCA5A5, #DC2626); color: #2A0A0A; }
+.toaster.saliendo { animation: subir-toaster .3s ease forwards; }
+
+@keyframes bajar-toaster {
+    from { opacity: 0; transform: translateY(-3vmin) scale(.94); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes subir-toaster {
+    to { opacity: 0; transform: translateY(-3vmin) scale(.94); }
+}
+
+/* -------------------------------------------------------------- Teclado --- */
+/* El dimensionado del teclado vive en "Registro adaptable", mas arriba.
+   Aca solo queda la apariencia de la tecla. */
+
+.tecla {
+    font-family: var(--display);
+    font-weight: 700;
+    color: var(--texto);
+
+    background: linear-gradient(180deg, #333, #1A1A1A);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.18),
+        0 3px 0 rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.06s, filter 0.12s;
+}
+
+.tecla:active {
+    transform: translateY(3px);
+    box-shadow: none;
+    filter: brightness(1.4);
+}
+
+.tecla-accion { color: var(--oro); }
+
+/* ========================================================== Orientacion ====
+   La rueda ya se dimensiona sola con vmin, asi que lo que cambia entre
+   orientaciones es el ACOMODO de lo que va alrededor.
+   =========================================================================== */
+
+/* --- Vertical (totem): hay alto de sobra --- */
+
+/* El nombre de la ruleta va pegado al borde inferior de la rueda, como marca
+   de agua. Antes se pintaba abajo del todo y quedaba encima del pie, que ya
+   trae su propio texto dibujado.
+   --rueda-abajo lo publica app.js: solo JS conoce el radio real. */
+.invitacion {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+}
+
+.invitacion h1 {
+    position: absolute;
+    top: calc(var(--rueda-abajo, 70%) + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 86vw;
+
+    /* Marca de agua: presente pero sin competir con la rueda */
+    font-size: 2.4vmin;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .38);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* La invitacion a jugar queda debajo del nombre */
+.toca {
+    position: absolute;
+    top: calc(var(--rueda-abajo, 70%) + 5px + 4vmin);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* El ancho de la tarjeta de registro lo maneja "Registro adaptable". */
+[data-orientacion="vertical"] .tarjeta-premio { max-width: 84vmin; }
+
+/* --- Horizontal (TV o monitor acostado) --- */
+[data-orientacion="horizontal"] .pieza-marco { display: none; }
+
+/* En horizontal el borde de la rueda casi toca el fondo de la pantalla, asi
+   que el nombre y la invitacion se apoyan en el borde inferior del viewport. */
+[data-orientacion="horizontal"] .invitacion h1 {
+    top: auto;
+    bottom: 5.4vmin;
+    font-size: 1.9vmin;
+}
+[data-orientacion="horizontal"] .toca {
+    top: auto;
+    bottom: 1.6vmin;
+    font-size: 2.4vmin;
+}
+
+/* En horizontal el ancho sobra: el modal se ensancha y el teclado se
+   acomoda al lado del DNI en vez de debajo. */
+[data-orientacion="horizontal"] .tarjeta-premio { max-width: 62vw; padding: 4vmin; }
+[data-orientacion="horizontal"] .felicidades { font-size: 5vmin; }
+[data-orientacion="horizontal"] .premio { font-size: 6.5vmin; padding: 2vmin; margin-bottom: 2.4vmin; }
+[data-orientacion="horizontal"] .copa { width: 11vmin; margin-bottom: 1vmin; }
+[data-orientacion="horizontal"] .ganaste { margin: 1vmin 0 1.6vmin; }
+
+/* El registro NO se acomoda por orientacion sino por ANCHO disponible: una
+   pantalla vertical grande tiene alto de sobra pero puede no tener ancho para
+   dos columnas. Las reglas estan mas abajo, en "Registro adaptable". */
+
+/* --------------------------------------------- Aviso de orientacion (dev) - */
+.aviso-orientacion {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    padding: 7px 14px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: #FFD84D;
+    background: rgba(0, 0, 0, .85);
+    border: 1px solid #4A4028;
+    border-radius: 999px;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------- Diagnostico --- */
+.diagnostico {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 999;
+    padding: 8px 12px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #7CFF6B;
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid #2A3340;
+    border-radius: 6px;
+    pointer-events: none;
+    white-space: pre;
+}
+
+/* Pantallas bajas: solo afecta al cartel de premio. El registro ya se
+   dimensiona solo con clamp() y no necesita excepciones. */
+@media (max-height: 700px) {
+    .tarjeta-premio { padding: 3vh 3vw; }
+    .premio { font-size: clamp(24px, 7vh, 60px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

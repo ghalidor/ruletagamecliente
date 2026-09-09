@@ -1,0 +1,184 @@
+@page
+@model RuletaGame.Web.Pages.Reportes.IndexModel
+@{
+    ViewData["Titulo"] = "Reportes";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Reportes</h1>
+        <p>Historial de jugadas. Incluye los giros sin registrar, que el sistema anterior no guardaba.</p>
+    </div>
+</div>
+
+<div class="panel entra" style="margin-bottom:18px">
+    <div class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end">
+        <div class="campo" style="margin:0">
+            <label for="desde">Desde</label>
+            <input class="control" id="desde" />
+        </div>
+        <div class="campo" style="margin:0">
+            <label for="hasta">Hasta</label>
+            <input class="control" id="hasta" />
+        </div>
+        <div class="campo" style="margin:0">
+            <label for="ruleta">Ruleta</label>
+            <select class="control" id="ruleta" style="width:100%">
+                <option value="0">Todas</option>
+                @foreach(var r in Model.Ruletas)
+                {
+                    <option value="@r.RuletaId">@r.Nombre</option>
+                }
+            </select>
+        </div>
+        <div class="campo" style="margin:0">
+            <label>Filtro</label>
+            <label style="display:flex;align-items:center;gap:9px;text-transform:none;
+                          letter-spacing:normal;font-weight:400;cursor:pointer;padding:9px 0">
+                <input type="checkbox" id="soloRegistradas" class="form-check-input" style="margin:0" />
+                <span>Solo con DNI</span>
+            </label>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-principal" id="btnBuscar" style="flex:1">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+            <button class="btn btn-icono" id="btnExcel" title="Exportar a Excel" disabled>
+                <i class="bi bi-file-earmark-excel"></i>
+            </button>
+            <button class="btn btn-icono" id="btnExportar" title="Exportar a CSV" disabled>
+                <i class="bi bi-filetype-csv"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="rejilla rejilla-4" style="margin-bottom:18px;display:none" id="cifras">
+    <div class="tarjeta-cifra" style="--acento:var(--azul)">
+        <div class="cifra-etiqueta">Giros</div>
+        <div class="cifra-valor num" id="cifraTotal">0</div>
+    </div>
+    <div class="tarjeta-cifra" style="--acento:var(--verde)">
+        <div class="cifra-etiqueta">Con DNI</div>
+        <div class="cifra-valor num" id="cifraRegistradas">0</div>
+    </div>
+    <div class="tarjeta-cifra" style="--acento:var(--marca)">
+        <div class="cifra-etiqueta">Monto entregado</div>
+        <div class="cifra-valor num" id="cifraMonto">0</div>
+        <div class="cifra-pie">Todos los premios</div>
+    </div>
+
+    <div class="tarjeta-cifra" style="--acento:var(--rojo)">
+        <div class="cifra-etiqueta">Descuenta del tope</div>
+        <div class="cifra-valor num" id="cifraDescuenta">0</div>
+        <div class="cifra-pie">Coincide con el tablero</div>
+    </div>
+</div>
+
+<div class="panel entra">
+    <div class="tabla-envoltura">
+        <table id="tablaReporte" class="dataTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Ruleta</th>
+                    <th>Pedestal</th>
+                    <th>Premio</th>
+                    <th>Monto</th>
+                    <th>Descuenta</th>
+                    <th>Cliente</th>
+                    <th>Documento</th>
+                    <th>Correo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const MONEDA = '@Model.Moneda';
+        let tabla = null;
+
+        const hoy = new Date();
+        const hace7 = new Date(); hace7.setDate(hoy.getDate() - 7);
+
+        S3K.fecha('#desde', { defaultDate: hace7 });
+        S3K.fecha('#hasta', { defaultDate: hoy });
+        S3K.select('#ruleta');
+
+        function parametros() {
+            return `desde=${encodeURIComponent(document.getElementById('desde').value)}` +
+                `&hasta=${encodeURIComponent(document.getElementById('hasta').value)}` +
+                `&ruletaId=${document.getElementById('ruleta').value}` +
+                `&soloRegistradas=${document.getElementById('soloRegistradas').checked}`;
+        }
+
+        /* Escribe en un elemento solo si existe.
+           Antes se usaba getElementById(...).textContent directo, y un id que no
+           estuviera en el HTML lanzaba y dejaba la busqueda entera sin ejecutar:
+           la tabla no se llenaba y no se veia el motivo. */
+        function pintar(id, valor) {
+            const elemento = document.getElementById(id);
+            if (elemento) elemento.textContent = valor;
+            else console.warn('Falta el elemento', id);
+        }
+
+        async function buscar() {
+            const r = await S3K.post(`/Reportes?handler=Buscar&${parametros()}`);
+
+            if (!r.datos?.exito) {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+                return;
+            }
+
+            document.getElementById('cifras').style.display = 'grid';
+
+            pintar('cifraTotal', r.datos.total.toLocaleString('es-PE'));
+            pintar('cifraRegistradas', r.datos.registradas.toLocaleString('es-PE'));
+            pintar('cifraMonto', S3K.moneda(r.datos.monto, MONEDA));
+            pintar('cifraDescuenta', S3K.moneda(r.datos.montoDescuenta, MONEDA));
+            const vacio = r.datos.total === 0;
+            document.getElementById('btnExportar').disabled = vacio;
+            document.getElementById('btnExcel').disabled = vacio;
+
+            if (tabla) tabla.destroy();
+
+            $('#tablaReporte tbody').html(r.datos.datos.map(j => `
+                    <tr>
+                        <td class="num" data-order="${j.fechaOrden}">${j.fecha}</td>
+                        <td>${j.ruleta}</td>
+                        <td>${j.pantalla}</td>
+                        <td>${j.premio} <span style="color:var(--texto-tenue);font-size:.8rem">(${j.tipo})</span></td>
+                        <td class="num" data-order="${j.monto}">${S3K.moneda(j.monto, MONEDA)}</td>
+                        <td><span class="etiqueta ${j.afectaTope ? 'etiqueta-si' : 'etiqueta-neutra'}">
+                            ${j.afectaTope ? 'Si' : 'No'}</span></td>
+                        <td>${j.cliente}</td>
+                        <td>
+                            <span class="num">${j.documento}</span>
+                            ${j.tipoDoc
+                    ? `<div style="font-size:.76rem;color:var(--texto-tenue)">${j.tipoDoc}</div>`
+                    : ''}
+                        </td>
+                        <td style="font-size:.85rem">${j.correo}</td>
+                        <td><span class="etiqueta ${j.registrado ? 'etiqueta-si' : 'etiqueta-neutra'}">
+                            ${j.registrado ? 'Registrado' : 'Sin registrar'}</span></td>
+                    </tr>`).join(''));
+
+            tabla = S3K.tabla('#tablaReporte', { order: [[0, 'desc']] });
+        }
+
+        document.getElementById('btnBuscar').addEventListener('click', buscar);
+        document.getElementById('btnExportar').addEventListener('click', () => {
+            location.href = `/Reportes?handler=Exportar&${parametros()}`;
+        });
+
+        document.getElementById('btnExcel').addEventListener('click', () => {
+            location.href = `/Reportes?handler=ExportarExcel&${parametros()}`;
+        });
+
+        buscar();
+    </script>
+}

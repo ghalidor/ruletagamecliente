@@ -1,0 +1,10 @@
+IMAGENES DE PREMIOS SUBIDAS DESDE EL GESTOR
+===========================================
+
+Aqui se guardan las fotos de los premios de tipo Producto, en subcarpetas
+por ruleta:  /premios/{ruletaId}/{aaaaMMddHHmmss}-{id}.webp
+
+El gestor las redimensiona con ImageSharp al subirlas (900x400 maximo) y las
+convierte a WebP. El sistema legacy usaba System.Drawing, que no funciona en
+.NET moderno, y guardaba todo como JPEG aunque el archivo mantuviera la
+extension .png.

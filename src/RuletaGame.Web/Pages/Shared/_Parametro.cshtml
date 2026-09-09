@@ -1,0 +1,96 @@
+@model RuletaGame.Domain.Entities.Configuracion
+@{
+    // Un solo lugar donde se dibuja un parametro. Antes estaba repetido dentro
+    // del bucle y cualquier ajuste habia que hacerlo dos veces.
+    string Etiqueta(string clave) => clave switch {
+        "MONEDA_SIMBOLO" => "Simbolo de moneda",
+        "TOPE_DIARIO_MONTO" => "Tope diario base",
+        "GIRO_DURACION_MS" => "Duracion del giro",
+        "GIRO_VUELTAS" => "Vueltas antes de frenar",
+        "STANDBY_TIMEOUT_SEGUNDOS" => "Espera antes de volver a standby",
+        "REGISTRO_TIMEOUT_SEGUNDOS" => "Espera en pantalla de registro",
+        "CICLO_HABILITADO" => "Ciclo de premios",
+        "AUTOCOMPLETAR_DNI" => "Autocompletar datos por DNI",
+        "ENVIAR_CLIENTE_EXTERNO" => "Enviar clientes al sistema externo",
+        "ENVIO_MAX_INTENTOS" => "Reintentos de envio",
+        "CLIENTE_CORREO_OBLIGATORIO" => "Correo obligatorio",
+        "CLIENTE_TELEFONO_OBLIGATORIO" => "Telefono obligatorio",
+        "CLIENTE_PIDE_DATOS" => "Ofrecer registro al ganador",
+        "WEB_SESION_HORAS" => "Horas de sesion de la terminal web",
+        _ => clave
+    };
+}
+
+<div class="parametro">
+    <div class="campo">
+        <label for="cfg-@Model.Clave">@Etiqueta(Model.Clave)</label>
+
+        <div style="display:flex;gap:8px">
+            @if(Model.TipoDato == "BOOL") {
+                <select class="control" id="cfg-@Model.Clave">
+                    <option value="1" selected="@(Model.Valor == "1")">Habilitado</option>
+                    <option value="0" selected="@(Model.Valor != "1")">Deshabilitado</option>
+                </select>
+            } else {
+                <input class="control @(Model.TipoDato != "TEXTO" ? "num" : "")"
+                       id="cfg-@Model.Clave" value="@Model.Valor"
+                       type="@(Model.TipoDato == "TEXTO" ? "text" : "number")"
+                       step="@(Model.TipoDato == "DECIMAL" ? "0.01" : "1")" />
+            }
+
+            <button class="btn btn-icono" data-guardar="@Model.Clave" title="Guardar">
+                <i class="bi bi-check-lg"></i>
+            </button>
+        </div>
+
+        <div class="ayuda">
+            @Model.Descripcion
+            @if(Model.Clave == "GIRO_DURACION_MS") {
+                <text> — <span id="giroSegundos"></span></text>
+            }
+        </div>
+
+        @if(Model.Clave == "ENVIAR_CLIENTE_EXTERNO") {
+            <div class="aviso aviso-info" style="margin-top:8px;font-size:.82rem">
+                <i class="bi bi-info-circle"></i>
+                <span>
+                    El envio ocurre en segundo plano: el cliente no espera.
+                    Puedes seguirlos en <a href="/Envios">Envios</a>. La direccion
+                    y el codigo de sala van en <code>appsettings.json</code>.
+                </span>
+            </div>
+        }
+
+        @if(Model.Clave == "AUTOCOMPLETAR_DNI") {
+            <div class="aviso aviso-info" style="margin-top:8px;font-size:.82rem">
+                <i class="bi bi-info-circle"></i>
+                <span>
+                    Solo aplica al DNI. Si el servicio no responde, el cliente
+                    escribe a mano y no se muestra ningun error.
+                </span>
+            </div>
+        }
+
+        @if(Model.Clave == "CLIENTE_PIDE_DATOS") {
+            <div class="aviso aviso-info" style="margin-top:8px;font-size:.82rem">
+                <i class="bi bi-info-circle"></i>
+                <span>
+                    En <strong>0</strong> el pedestal no ofrece registrarse: tras
+                    el premio solo aparece <em>Continuar</em>. El premio se entrega
+                    igual; lo que se pierde es la captacion de datos.
+                </span>
+            </div>
+        }
+
+        @if(Model.Clave == "CICLO_HABILITADO") {
+            <div class="aviso aviso-info" style="margin-top:8px;font-size:.82rem">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>
+                    Con el ciclo activo un premio no se repite hasta que salgan
+                    todos, pero <strong>las probabilidades dejan de cumplirse</strong>:
+                    cada premio termina saliendo la misma cantidad de veces.
+                </span>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,13 @@
+{
+  "servidor": "http://localhost:3345",
+  "codigoPantalla": "PEDESTAL-01",
+  "tokenPantalla": "CAMBIAR-TOKEN-DEL-PEDESTAL",
+
+  "kiosco": false,
+  "siempreEncima": false,
+  "ocultarCursor": false,
+  "bloquearAtajos": true,
+
+  "reinicioDiarioHora": 5,
+  "modoDepuracion": true
+}

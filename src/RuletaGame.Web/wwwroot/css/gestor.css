@@ -1,0 +1,1347 @@
+/* ============================================================================
+   Gestor Ruleta - Sistema de diseno
+
+   Dos temas reales, no un filtro: claro suave (por defecto) y oscuro. El claro
+   evita el blanco puro en las superficies grandes, que a pantalla completa
+   cansa la vista. El oscuro no es un invertido: baja tambien la saturacion de
+   los acentos, porque los colores puros vibran sobre fondo negro.
+
+   Pensado para tablet: objetivos tactiles grandes, menu colapsable a mano y
+   navegacion inferior en pantallas chicas.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+/* --------------------------------------------------------- Tema: claro --- */
+:root,
+[data-tema="claro"] {
+    /* Gris templado, no blanco. Las superficies grandes bajan bastante de
+       luminancia para que trabajar horas frente al gestor no canse la vista.
+       El contraste con el texto sigue muy por encima de AA. */
+    --fondo: #DFE3EA;
+    --superficie: #EAEDF3;
+    --superficie-2: #E2E6EE;
+    --superficie-3: #D5DAE4;
+    --borde: #C9CFDB;
+    --borde-fuerte: #AFB7C7;
+    --texto: #1E2331;
+    --texto-medio: #525A6B;
+    --texto-tenue: #7E8798;
+    --marca: #6D4AD8;
+    --marca-suave: #E1D8F7;
+    --marca-fuerte: #5936C0;
+    --marca-texto: #FFFFFF;
+    --verde: #1E9E5A;
+    --oro: #D9A116;
+    --rojo: #D3453F;
+    --violeta: #8B47C9;
+    --azul: #3268CC;
+    --ok-fondo: #D7EDDF;
+    --ok-texto: #135533;
+    --error-fondo: #F2DDDC;
+    --error-texto: #8C2622;
+    --info-fondo: #DAE5F5;
+    --info-texto: #1B4488;
+    --sombra-1: 0 1px 2px rgba(30, 35, 49, .07);
+    --sombra-2: 0 2px 7px rgba(30, 35, 49, .09), 0 1px 2px rgba(30, 35, 49, .05);
+    --sombra-3: 0 8px 24px rgba(30, 35, 49, .12), 0 2px 6px rgba(30, 35, 49, .06);
+    --sombra-4: 0 20px 46px rgba(30, 35, 49, .2);
+    --brillo-hover: 1;
+    color-scheme: light;
+}
+
+/* -------------------------------------------------------- Tema: oscuro --- */
+[data-tema="oscuro"] {
+    --fondo: #14161C;
+    --superficie: #1C1F27;
+    --superficie-2: #232732;
+    --superficie-3: #2B303C;
+    --borde: #2E333F;
+    --borde-fuerte: #3D4453;
+    --texto: #E7EAF0;
+    --texto-medio: #A0A8B8;
+    --texto-tenue: #6E7688;
+    --marca: #9A7DF0;
+    --marca-suave: #2A2440;
+    --marca-fuerte: #B39CF5;
+    --marca-texto: #16121F;
+    /* Menos saturados que en claro: sobre fondo oscuro los puros vibran. */
+    --verde: #4ADE80;
+    --oro: #FACC15;
+    --rojo: #F87171;
+    --violeta: #C084FC;
+    --azul: #60A5FA;
+    --ok-fondo: #14301F;
+    --ok-texto: #7EE2A8;
+    --error-fondo: #35191A;
+    --error-texto: #FCA5A5;
+    --info-fondo: #172741;
+    --info-texto: #93C5FD;
+    --sombra-1: 0 1px 2px rgba(0, 0, 0, .3);
+    --sombra-2: 0 2px 6px rgba(0, 0, 0, .35), 0 1px 2px rgba(0, 0, 0, .25);
+    --sombra-3: 0 8px 22px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .3);
+    --sombra-4: 0 20px 44px rgba(0, 0, 0, .6);
+    --brillo-hover: 1.15;
+    color-scheme: dark;
+}
+
+:root {
+    --fuente: 'Outfit', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --radio: 14px;
+    --radio-sm: 9px;
+    --radio-lg: 20px;
+    --ancho-barra: 246px;
+    --ancho-barra-min: 76px;
+}
+
+/* ---------------------------------------------------------------- Base --- */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: var(--fuente);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: background .25s, color .25s;
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--fuente);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -.02em;
+}
+
+h1 {
+    font-size: clamp(1.45rem, 3vw, 1.85rem);
+}
+
+h2 {
+    font-size: 1.12rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+a {
+    color: var(--marca);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+    a:hover {
+        color: var(--marca-fuerte);
+    }
+
+.num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+    outline: 2px solid var(--marca);
+    outline-offset: 2px;
+    border-radius: var(--radio-sm);
+}
+
+/* --------------------------------------------------------- Estructura --- */
+.marco {
+    display: grid;
+    grid-template-columns: var(--ancho-barra) 1fr;
+    min-height: 100vh;
+    transition: grid-template-columns .22s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Colapso manual con el boton del menu */
+body.barra-min .marco {
+    grid-template-columns: var(--ancho-barra-min) 1fr;
+}
+
+.barra-lateral {
+    background: var(--superficie);
+    border-right: 1px solid var(--borde);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.barra-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 18px;
+    min-height: 46px;
+}
+
+.marca-texto {
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Disco de la rueda como logotipo: los cinco colores reales de las tajadas */
+.marca-disco {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    background: conic-gradient( var(--verde) 0deg 72deg, var(--oro) 72deg 144deg, var(--rojo) 144deg 216deg, var(--violeta) 216deg 288deg, var(--azul) 288deg 360deg);
+    box-shadow: inset 0 0 0 3.5px var(--superficie), 0 0 0 1.5px var(--borde-fuerte);
+}
+    /* Punto central, como el boton de giro */
+    .marca-disco::after {
+        content: '';
+        position: absolute;
+        inset: 40%;
+        border-radius: 50%;
+        background: var(--texto);
+    }
+
+.btn-menu {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--texto-medio);
+    font-size: 1.15rem;
+    cursor: pointer;
+    padding: 7px;
+    border-radius: var(--radio-sm);
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background .15s, color .15s;
+}
+
+    .btn-menu:hover {
+        background: var(--superficie-2);
+        color: var(--texto);
+    }
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: var(--radio-sm);
+    color: var(--texto-medio);
+    font-weight: 500;
+    font-size: .93rem;
+    white-space: nowrap;
+    position: relative;
+    transition: background .15s, color .15s;
+}
+
+    .nav-item:hover {
+        background: var(--superficie-2);
+        color: var(--texto);
+        text-decoration: none;
+    }
+
+    .nav-item.activo {
+        background: var(--marca-suave);
+        color: var(--marca-fuerte);
+        font-weight: 600;
+    }
+
+        /* Barra de posicion a la izquierda del activo */
+        .nav-item.activo::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 22%;
+            bottom: 22%;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: var(--marca);
+        }
+
+    .nav-item i {
+        width: 20px;
+        font-size: 1.1rem;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+.pie-lateral {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--borde);
+}
+
+.tarjeta-usuario {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    margin-bottom: 4px;
+    border-radius: var(--radio-sm);
+    background: var(--superficie-2);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    background: var(--marca);
+    color: var(--marca-texto);
+    font-weight: 700;
+    font-size: .82rem;
+}
+
+.contenido {
+    padding: 26px 30px 80px;
+    min-width: 0;
+}
+
+/* En modo colapsado se oculta todo el texto de la barra */
+body.barra-min .marca-texto,
+body.barra-min .nav-item span,
+body.barra-min .tarjeta-usuario .datos {
+    display: none;
+}
+
+body.barra-min .nav-item {
+    justify-content: center;
+    padding: 12px 8px;
+}
+
+body.barra-min .barra-cabecera {
+    justify-content: center;
+    padding-bottom: 14px;
+}
+
+body.barra-min .btn-menu {
+    margin-left: 0;
+}
+
+body.barra-min .tarjeta-usuario {
+    justify-content: center;
+    padding: 8px;
+}
+
+/* Rotulo flotante al pasar el mouse sobre un icono colapsado */
+body.barra-min .nav-item::after {
+    content: attr(data-titulo);
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--texto);
+    color: var(--fondo);
+    padding: 6px 11px;
+    border-radius: var(--radio-sm);
+    font-size: .82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 200;
+    box-shadow: var(--sombra-3);
+    transition: opacity .15s;
+}
+
+body.barra-min .nav-item:hover::after {
+    opacity: 1;
+}
+
+.cabecera-pagina {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+    .cabecera-pagina p {
+        margin: 3px 0 0;
+        color: var(--texto-medio);
+        font-size: .93rem;
+    }
+
+/* ---------------------------------------------------------------- Panel --- */
+.panel {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-2);
+    padding: 22px;
+}
+
+.panel-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--borde);
+}
+
+.rejilla {
+    display: grid;
+    gap: 16px;
+}
+
+.rejilla-4 {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.rejilla-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* ------------------------------------------------------------- Tarjetas --- */
+.tarjeta-cifra {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra-2);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+    .tarjeta-cifra:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--sombra-3);
+    }
+
+    /* Halo de color en la esquina: da vida sin ensuciar */
+    .tarjeta-cifra::after {
+        content: '';
+        position: absolute;
+        top: -45px;
+        right: -45px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--acento, var(--marca));
+        opacity: .09;
+    }
+
+.cifra-cabecera {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cifra-icono {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: .9rem;
+    background: color-mix(in srgb, var(--acento, var(--marca)) 16%, transparent);
+    color: var(--acento, var(--marca));
+    flex-shrink: 0;
+}
+
+.cifra-etiqueta {
+    font-size: .79rem;
+    font-weight: 600;
+    color: var(--texto-tenue);
+}
+
+.cifra-valor {
+    font-weight: 800;
+    font-size: 1.95rem;
+    line-height: 1.15;
+    margin-top: 6px;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.cifra-pie {
+    font-size: .82rem;
+    color: var(--texto-medio);
+    margin-top: 3px;
+}
+
+/* -------------------------------------------------------------- Botones --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--borde-fuerte);
+    border-radius: var(--radio-sm);
+    min-height: 42px; /* alto comodo para dedo en tablet */
+    padding: 10px 17px;
+    background: var(--superficie);
+    color: var(--texto);
+    font-family: var(--fuente);
+    font-weight: 600;
+    font-size: .92rem;
+    cursor: pointer;
+    box-shadow: var(--sombra-1);
+    transition: background .15s, box-shadow .15s, transform .08s, border-color .15s, filter .15s;
+}
+
+    .btn:hover {
+        background: var(--superficie-2);
+        border-color: var(--texto-tenue);
+        box-shadow: var(--sombra-2);
+    }
+
+    .btn:active {
+        transform: translateY(1px);
+        box-shadow: none;
+    }
+
+    .btn:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+.btn-principal {
+    background: linear-gradient(135deg, var(--marca), var(--marca-fuerte));
+    border-color: transparent;
+    color: var(--marca-texto);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--marca) 35%, transparent);
+}
+
+    .btn-principal:hover {
+        background: linear-gradient(135deg, var(--marca-fuerte), var(--marca-fuerte));
+        border-color: transparent;
+        filter: brightness(var(--brillo-hover));
+    }
+
+.btn-peligro {
+    background: var(--rojo);
+    border-color: var(--rojo);
+    color: #fff;
+}
+
+[data-tema="oscuro"] .btn-peligro {
+    color: #2A0F0F;
+}
+
+.btn-peligro:hover {
+    filter: brightness(1.08);
+    border-color: var(--rojo);
+}
+
+.btn-sm {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: .85rem;
+}
+
+.btn-icono {
+    padding: 8px 11px;
+    min-width: 40px;
+}
+
+/* ------------------------------------------------------------ Formulario --- */
+.campo {
+    margin-bottom: 18px;
+}
+
+    .campo label {
+        display: block;
+        font-size: .87rem;
+        font-weight: 600;
+        color: var(--texto);
+        margin-bottom: 6px;
+    }
+
+.control {
+    width: 100%;
+    background: var(--superficie-2);
+    border: 1px solid var(--borde-fuerte);
+    border-radius: var(--radio-sm);
+    color: var(--texto);
+    font-family: var(--fuente);
+    font-size: .95rem;
+    min-height: 44px; /* minimo comodo para tocar en tablet */
+    padding: 11px 13px;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+    .control:hover {
+        border-color: var(--texto-tenue);
+    }
+
+    .control:focus {
+        outline: none;
+        background: var(--superficie);
+        border-color: var(--marca);
+        box-shadow: 0 0 0 3.5px var(--marca-suave);
+    }
+
+    .control.invalido {
+        border-color: var(--rojo);
+    }
+
+    .control::placeholder {
+        color: var(--texto-tenue);
+    }
+
+textarea.control {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.ayuda {
+    font-size: .83rem;
+    color: var(--texto-medio);
+    margin-top: 6px;
+}
+
+.error-campo {
+    font-size: .83rem;
+    color: var(--rojo);
+    margin-top: 5px;
+    display: block;
+    font-weight: 500;
+}
+
+/* Interruptor grande, comodo para tablet */
+.form-check-input {
+    width: 2.5em !important;
+    height: 1.35em !important;
+    cursor: pointer;
+    background-color: var(--superficie-3);
+    border-color: var(--borde-fuerte);
+}
+
+    .form-check-input:checked {
+        background-color: var(--marca);
+        border-color: var(--marca);
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 3.5px var(--marca-suave);
+        border-color: var(--marca);
+    }
+
+    .form-check-input:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+
+/* ==================================================================== Tabla ==
+   DataTables trae su propia hoja de estilos pensada para fondo blanco. Todo
+   lo de aca la sobreescribe para que la tabla se lea como el resto del gestor
+   y funcione igual en los dos temas.
+   ============================================================================ */
+
+.tabla-envoltura {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -22px;
+    padding: 0 22px;
+    /* Sombras que aparecen al haber contenido cortado a los lados: avisan que
+       la tabla sigue, sin ocupar espacio con una barra permanente. */
+    background: linear-gradient(90deg, var(--superficie) 30%, transparent), linear-gradient(90deg, transparent, var(--superficie) 70%) 100% 0, radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.12), transparent), radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.12), transparent) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+}
+
+table.dataTable {
+    width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0 !important;
+}
+
+    /* ----------------------------------------------------------- Encabezado --- */
+    table.dataTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--superficie-2);
+        border: none !important;
+        border-bottom: 2px solid var(--borde) !important;
+        color: var(--texto-medio);
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        padding: 13px 14px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+        table.dataTable thead th:first-child {
+            border-radius: var(--radio-sm) 0 0 0;
+        }
+
+        table.dataTable thead th:last-child {
+            border-radius: 0 var(--radio-sm) 0 0;
+        }
+
+        /* Flechas de orden: las de DataTables son imagenes de fondo que no se ven en
+   tema oscuro. Se reemplazan por triangulos dibujados con borde. */
+        table.dataTable thead th.sorting,
+        table.dataTable thead th.sorting_asc,
+        table.dataTable thead th.sorting_desc {
+            background-image: none !important;
+            cursor: pointer;
+            padding-right: 26px;
+            position: relative;
+            transition: color .15s, background .15s;
+        }
+
+            table.dataTable thead th.sorting:hover {
+                color: var(--texto);
+                background: var(--superficie-3);
+            }
+
+            table.dataTable thead th.sorting::after,
+            table.dataTable thead th.sorting_asc::after,
+            table.dataTable thead th.sorting_desc::after {
+                content: '';
+                position: absolute;
+                right: 11px;
+                top: 50%;
+                width: 0;
+                height: 0;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+            }
+
+            /* Sin ordenar: dos flechas tenues */
+            table.dataTable thead th.sorting::before,
+            table.dataTable thead th.sorting::after {
+                content: '';
+                position: absolute;
+                right: 11px;
+                width: 0;
+                height: 0;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                opacity: .3;
+            }
+
+            table.dataTable thead th.sorting::before {
+                top: calc(50% - 6px);
+                border-bottom: 5px solid currentColor;
+            }
+
+            table.dataTable thead th.sorting::after {
+                top: calc(50% + 1px);
+                border-top: 5px solid currentColor;
+            }
+
+        table.dataTable thead th.sorting_asc {
+            color: var(--marca);
+        }
+
+        table.dataTable thead th.sorting_desc {
+            color: var(--marca);
+        }
+
+        table.dataTable thead th.sorting_asc::after {
+            transform: translateY(-50%);
+            border-bottom: 5px solid currentColor;
+        }
+
+        table.dataTable thead th.sorting_desc::after {
+            transform: translateY(-50%);
+            border-top: 5px solid currentColor;
+        }
+
+    /* ---------------------------------------------------------------- Filas --- */
+    table.dataTable tbody tr {
+        transition: background .12s;
+    }
+
+        /* Cebra suave: ayuda a seguir la fila en tablas anchas sin ensuciar */
+        table.dataTable tbody tr:nth-child(even) {
+            background: color-mix(in srgb, var(--superficie-2) 55%, transparent);
+        }
+
+        table.dataTable tbody tr:hover {
+            background: var(--marca-suave);
+        }
+
+    table.dataTable tbody td {
+        border: none;
+        border-bottom: 1px solid var(--borde);
+        padding: 13px 14px;
+        vertical-align: middle;
+        color: var(--texto);
+        font-size: .92rem;
+    }
+
+    table.dataTable tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+/* Firma: cada premio lleva el color real de su tajada, asi el listado se lee
+   como la rueda desenrollada. */
+tr[data-color] td:first-child {
+    box-shadow: inset 3px 0 0 var(--color-tajada, transparent);
+}
+
+/* Mensaje de tabla vacia */
+table.dataTable tbody td.dataTables_empty {
+    padding: 40px 14px;
+    text-align: center;
+    color: var(--texto-tenue);
+    font-size: .95rem;
+}
+
+/* --------------------------------------------------- Buscador y paginado --- */
+.dataTables_wrapper {
+    position: relative;
+}
+
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 14px;
+        text-align: left;
+        float: none;
+    }
+
+        .dataTables_wrapper .dataTables_filter input {
+            background: var(--superficie-2);
+            border: 1px solid var(--borde-fuerte);
+            border-radius: var(--radio-sm);
+            color: var(--texto);
+            padding: 9px 13px 9px 34px;
+            min-height: 40px;
+            width: min(100%, 300px);
+            margin: 0;
+            transition: border-color .15s, box-shadow .15s;
+            /* Lupa dibujada en el fondo: evita depender de una fuente de iconos */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239AA3B2'%3E%3Cpath d='M11.7 10.3a6 6 0 1 0-1.4 1.4l3 3a1 1 0 0 0 1.4-1.4zM7 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 10px center;
+            background-size: 15px;
+        }
+
+            .dataTables_wrapper .dataTables_filter input:focus {
+                outline: none;
+                border-color: var(--marca);
+                box-shadow: 0 0 0 3.5px var(--marca-suave);
+            }
+
+    .dataTables_wrapper .dataTables_info {
+        color: var(--texto-medio) !important;
+        font-size: .86rem;
+        padding-top: 18px;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+        padding-top: 14px;
+    }
+
+    .dataTables_wrapper .page-link {
+        background: var(--superficie);
+        border: 1px solid var(--borde);
+        color: var(--texto-medio);
+        font-size: .88rem;
+        font-weight: 600;
+        padding: 8px 13px;
+        margin: 0 2px;
+        border-radius: var(--radio-sm) !important;
+        transition: background .15s, color .15s, border-color .15s;
+    }
+
+        .dataTables_wrapper .page-link:hover {
+            background: var(--superficie-2);
+            border-color: var(--texto-tenue);
+            color: var(--texto);
+        }
+
+    .dataTables_wrapper .page-item.active .page-link {
+        background: var(--marca);
+        border-color: var(--marca);
+        color: var(--marca-texto);
+    }
+
+    .dataTables_wrapper .page-item.disabled .page-link {
+        opacity: .4;
+        background: var(--superficie);
+        color: var(--texto-tenue);
+    }
+
+/* Distribucion propia definida en el dom de DataTables */
+.tabla-inferior {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+    .tabla-inferior .dataTables_info,
+    .tabla-inferior .dataTables_paginate {
+        float: none !important;
+        margin: 0;
+    }
+
+/* En movil el paginado se centra y el buscador ocupa todo el ancho */
+@media (max-width: 640px) {
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100%;
+    }
+
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        text-align: center;
+        float: none;
+    }
+}
+
+/* ------------------------------------------------------------ Etiquetas --- */
+.etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: .79rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.etiqueta-si {
+    background: var(--ok-fondo);
+    color: var(--ok-texto);
+}
+
+.etiqueta-no {
+    background: var(--error-fondo);
+    color: var(--error-texto);
+}
+
+.etiqueta-neutra {
+    background: var(--superficie-3);
+    color: var(--texto-medio);
+}
+
+.etiqueta-marca {
+    background: var(--marca-suave);
+    color: var(--marca-fuerte);
+}
+
+.punto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    background: currentColor;
+}
+
+.punto-vivo {
+    animation: latir 2s ease-in-out infinite;
+}
+
+@keyframes latir {
+    0%, 100% {
+        box-shadow: 0 0 0 0 currentColor;
+        opacity: 1;
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px transparent;
+        opacity: .5;
+    }
+}
+
+/* --------------------------------------------------------------- Barras --- */
+.barra {
+    height: 10px;
+    background: var(--superficie-3);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+    .barra > div {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--verde), var(--oro));
+        transition: width .7s cubic-bezier(.2, .8, .2, 1);
+    }
+
+/* ---------------------------------------------------------------- Login --- */
+.pantalla-login {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: radial-gradient(900px 460px at 15% -10%, color-mix(in srgb, var(--marca) 16%, transparent) 0%, transparent 62%), radial-gradient(760px 380px at 100% 100%, color-mix(in srgb, var(--azul) 14%, transparent) 0%, transparent 58%), var(--fondo);
+}
+
+.caja-login {
+    width: 100%;
+    max-width: 400px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-lg);
+    box-shadow: var(--sombra-4);
+    padding: 36px 32px 32px;
+}
+
+.login-marca {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+    .login-marca .marca-disco {
+        width: 54px;
+        height: 54px;
+        box-shadow: inset 0 0 0 6px var(--superficie), 0 0 0 1.5px var(--borde-fuerte);
+    }
+
+.login-titulo {
+    text-align: center;
+    font-size: 1.42rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.login-bajada {
+    text-align: center;
+    color: var(--texto-medio);
+    font-size: .9rem;
+    margin: 5px 0 26px;
+}
+
+/* Cambio de tema flotante, tambien disponible en el login */
+.btn-tema-flotante {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 50;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--borde);
+    background: var(--superficie);
+    color: var(--texto-medio);
+    cursor: pointer;
+    box-shadow: var(--sombra-2);
+    font-size: 1.05rem;
+}
+
+    .btn-tema-flotante:hover {
+        color: var(--texto);
+    }
+
+/* ----------------------------------------------------------- Mensajeria --- */
+.aviso {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 15px;
+    border-radius: var(--radio-sm);
+    font-size: .89rem;
+    margin-bottom: 16px;
+}
+
+    .aviso:empty {
+        display: none;
+    }
+
+    .aviso i {
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+.aviso-error {
+    background: var(--error-fondo);
+    color: var(--error-texto);
+}
+
+.aviso-ok {
+    background: var(--ok-fondo);
+    color: var(--ok-texto);
+}
+
+.aviso-info {
+    background: var(--info-fondo);
+    color: var(--info-texto);
+}
+
+.vacio {
+    text-align: center;
+    padding: 52px 20px;
+    color: var(--texto-medio);
+}
+
+    .vacio .icono {
+        font-size: 2.6rem;
+        color: var(--texto-tenue);
+        margin-bottom: 10px;
+    }
+
+    .vacio h3 {
+        color: var(--texto);
+        margin-bottom: 6px;
+    }
+
+    .vacio p {
+        margin-bottom: 18px;
+    }
+
+/* --------------------------------------------------- Vista previa rueda --- */
+.previa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+    .previa canvas {
+        width: 100%;
+        max-width: 330px;
+        height: auto;
+        aspect-ratio: 1;
+        filter: drop-shadow(0 10px 26px rgba(0, 0, 0, .18));
+    }
+
+.previa-nota {
+    font-size: .83rem;
+    color: var(--texto-medio);
+    text-align: center;
+}
+
+/* Premios: tabla + previa al costado */
+.rejilla-previa {
+    grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+/* ------------------------------------------------------ Entrada animada --- */
+.entra {
+    animation: subir .38s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+    .entra:nth-child(2) {
+        animation-delay: .04s;
+    }
+
+    .entra:nth-child(3) {
+        animation-delay: .08s;
+    }
+
+    .entra:nth-child(4) {
+        animation-delay: .12s;
+    }
+
+@keyframes subir {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ============================================================ Responsivo ===
+   El gestor se usa en tablet, asi que este bloque no es un extra.
+   =========================================================================== */
+
+@media (max-width: 1000px) {
+    .rejilla-previa {
+        grid-template-columns: 1fr;
+    }
+
+        .rejilla-previa > .panel:first-child {
+            order: 2 !important;
+        }
+
+        .rejilla-previa > #panelPrevia {
+            order: 1 !important;
+            position: static !important;
+        }
+
+    .previa canvas {
+        max-width: 250px;
+    }
+}
+
+/* Tablet horizontal: la barra arranca colapsada y el boton la expande */
+@media (max-width: 1100px) {
+    .marco {
+        grid-template-columns: var(--ancho-barra-min) 1fr;
+    }
+
+    .marca-texto, .nav-item span, .tarjeta-usuario .datos {
+        display: none;
+    }
+
+    .nav-item {
+        justify-content: center;
+        padding: 12px 8px;
+    }
+
+    .barra-cabecera {
+        justify-content: center;
+        padding-bottom: 14px;
+    }
+
+    .btn-menu {
+        display: none;
+    }
+
+    .tarjeta-usuario {
+        justify-content: center;
+        padding: 8px;
+    }
+
+    body.barra-min .marco {
+        grid-template-columns: var(--ancho-barra) 1fr;
+    }
+
+    body.barra-min .marca-texto,
+    body.barra-min .nav-item span,
+    body.barra-min .tarjeta-usuario .datos {
+        display: block;
+    }
+
+    body.barra-min .nav-item {
+        justify-content: flex-start;
+        padding: 11px 12px;
+    }
+
+        body.barra-min .nav-item::after {
+            display: none;
+        }
+
+    .contenido {
+        padding: 22px 20px 80px;
+    }
+}
+
+/* Tablet vertical y movil: navegacion abajo, donde llega el pulgar */
+@media (max-width: 768px) {
+    .marco, body.barra-min .marco {
+        grid-template-columns: 1fr;
+    }
+
+    .barra-lateral {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        height: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        border-right: none;
+        border-top: 1px solid var(--borde);
+        box-shadow: 0 -2px 14px rgba(0, 0, 0, .1);
+        padding: 7px 6px;
+        padding-bottom: max(7px, env(safe-area-inset-bottom));
+        z-index: 100;
+        gap: 0;
+    }
+
+    .barra-cabecera, .pie-lateral {
+        display: none;
+    }
+
+    .nav-item, body.barra-min .nav-item {
+        flex-direction: column;
+        gap: 3px;
+        padding: 7px 5px;
+        justify-content: center;
+    }
+
+        .nav-item span, body.barra-min .nav-item span {
+            display: block;
+            font-size: .67rem;
+        }
+
+        .nav-item i {
+            font-size: 1.3rem;
+        }
+
+        .nav-item.activo::before {
+            top: 0;
+            bottom: auto;
+            left: 20%;
+            right: 20%;
+            width: auto;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+        }
+
+        .nav-item::after {
+            display: none !important;
+        }
+
+    .contenido {
+        padding: 18px 16px 92px;
+    }
+
+    .cabecera-pagina {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .cabecera-pagina .btn {
+            width: 100%;
+        }
+
+    .panel {
+        padding: 18px 16px;
+        border-radius: var(--radio-sm);
+    }
+
+    .tabla-envoltura {
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+
+    .cifra-valor {
+        font-size: 1.6rem;
+    }
+
+    /* En movil los modales van pegados abajo, como una hoja */
+    .modal-dialog {
+        margin: 0;
+        align-items: flex-end;
+        min-height: 100%;
+    }
+
+    .modal-content {
+        border-radius: var(--radio-lg) var(--radio-lg) 0 0 !important;
+    }
+
+    .btn-tema-flotante {
+        top: 12px;
+        right: 12px;
+        width: 38px;
+        height: 38px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}

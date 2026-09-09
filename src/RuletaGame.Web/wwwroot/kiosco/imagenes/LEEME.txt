@@ -1,0 +1,11 @@
+IMAGENES DE LA RULETA (copia servida por HTTP)
+==============================================
+
+Esta carpeta es opcional. La app Electron ya trae sus propias imagenes en
+kiosco-electron/src/assets/imagenes/.
+
+Usa esta carpeta solo si prefieres que el kiosco cargue las piezas desde el
+servidor en vez de tenerlas empaquetadas: asi cambias el arte reemplazando un
+archivo, sin reinstalar la app del pedestal.
+
+Los nombres son los mismos que documenta el LEEME.txt de la carpeta de Electron.

@@ -1,0 +1,209 @@
+@page
+@model IndexModel
+@{
+    ViewData["Titulo"] = "Tablero";
+    var r = Model.Resumen;
+
+    decimal restante = r.TopeDiario > 0 ? Math.Max(0, r.TopeDiario - r.ConsumoTope) : 0;
+    int avance = r.TopeDiario > 0 ? (int)Math.Min(100, r.ConsumoTope / r.TopeDiario * 100) : 0;
+    decimal noDescuenta = r.EntregadoHoy - r.ConsumoTope;
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Tablero</h1>
+        <p>@DateTime.Now.ToString("dddd d 'de' MMMM, yyyy")</p>
+    </div>
+    <a class="btn btn-principal" href="/Ruletas/Editar"><i class="bi bi-plus-lg"></i> Nueva ruleta</a>
+</div>
+
+<div class="rejilla rejilla-4" style="margin-bottom:20px">
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--verde)">
+        <div class="cifra-cabecera"><div class="cifra-icono"><i class="bi bi-record-circle"></i></div><div class="cifra-etiqueta">Ruletas activas</div></div>
+        <div class="cifra-valor" id="cifraRuletas" data-contar="@r.RuletasActivas">0</div>
+        <div class="cifra-pie">Listas para el pedestal</div>
+    </div>
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--azul)">
+        <div class="cifra-cabecera"><div class="cifra-icono"><i class="bi bi-dice-5"></i></div><div class="cifra-etiqueta">Jugadas hoy</div></div>
+        <div class="cifra-valor" id="cifraJugadas" data-contar="@r.JugadasHoy">0</div>
+        <div class="cifra-pie">Giros desde las 00:00</div>
+    </div>
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--oro)">
+        <div class="cifra-cabecera"><div class="cifra-icono"><i class="bi bi-cash-coin"></i></div><div class="cifra-etiqueta">Entregado hoy</div></div>
+        <div class="cifra-valor" id="cifraEntregado" data-contar="@r.EntregadoHoy" data-moneda="@r.MonedaSimbolo">0</div>
+        <div class="cifra-pie">
+            @if(r.TopeDiario > 0)
+            {
+                <span>Quedan @r.MonedaSimbolo@restante.ToString("N2") del tope</span>
+            }
+            else
+            {
+                <span>Sin tope configurado</span>
+            }
+        </div>
+    </div>
+
+    <div class="tarjeta-cifra entra"
+         style="--acento:@(r.PantallasEnLinea > 0 ? "var(--verde)" : "var(--rojo)")">
+        <div class="cifra-cabecera"><div class="cifra-icono"><i class="bi bi-tv"></i></div><div class="cifra-etiqueta">Pedestales en linea</div></div>
+        <div class="cifra-valor">
+            <span id="cifraPantallas">@r.PantallasEnLinea</span><span style="color:var(--texto-tenue);font-size:1.2rem">/@r.PantallasTotales</span>
+        </div>
+        <div class="cifra-pie">Senal de los ultimos 90 segundos</div>
+    </div>
+</div>
+
+@if(r.TopeDiario > 0)
+{
+    <div class="panel entra" style="margin-bottom:20px">
+        <div class="panel-titulo">
+            <h2>
+                Tope del dia
+                @if(r.TopeEsExcepcion)
+                {
+                    <span class="etiqueta etiqueta-neutra" style="margin-left:8px;vertical-align:middle">
+                        <i class="bi bi-calendar-event"></i> Excepcion de hoy
+                    </span>
+                }
+            </h2>
+            <span class="num" style="color:var(--texto-medio)">@avance%</span>
+        </div>
+
+        <div style="height:14px;background:var(--fondo);border-radius:999px;
+                    box-shadow:var(--sombra-1);overflow:hidden">
+            <div style="height:100%;width:@avance%;border-radius:999px;
+                        background:linear-gradient(90deg,var(--verde),var(--marca));
+                        transition:width .8s cubic-bezier(.2,.8,.2,1)"></div>
+        </div>
+
+        <p style="color:var(--texto-medio);font-size:.85rem;margin:10px 0 0">
+            @r.MonedaSimbolo@r.ConsumoTope.ToString("N2") de @r.MonedaSimbolo@r.TopeDiario.ToString("N2").
+            El tope es global: cuenta todas las ruletas juntas.
+            Al alcanzarlo, los pedestales dejan de aceptar giros.
+        </p>
+
+        @if(noDescuenta > 0)
+        {
+            <p style="color:var(--texto-tenue);font-size:.82rem;margin:6px 0 0">
+                <i class="bi bi-info-circle"></i>
+                Ademas se entregaron @r.MonedaSimbolo@noDescuenta.ToString("N2")
+                en premios marcados como que no descuentan del tope.
+            </p>
+        }
+
+        @if(!string.IsNullOrWhiteSpace(r.TopeNota))
+        {
+            <p style="color:var(--texto-tenue);font-size:.82rem;margin:6px 0 0">
+                <i class="bi bi-sticky"></i> @r.TopeNota
+            </p>
+        }
+    </div>
+}
+
+<div class="panel entra">
+    <div class="panel-titulo">
+        <h2>Pedestales</h2>
+        <a class="btn btn-sm" href="/Pantallas"><i class="bi bi-gear"></i> Administrar</a>
+    </div>
+
+    @if(r.Pantallas.Count == 0)
+    {
+        <div class="vacio">
+            <h3>Todavia no hay pedestales</h3>
+            <p>Registra el primero para poder enviarle una ruleta.</p>
+            <a class="btn btn-principal" href="/Pantallas"><i class="bi bi-plus-lg"></i> Registrar pedestal</a>
+        </div>
+    }
+    else
+    {
+        <div class="rejilla rejilla-2">
+            @foreach(var p in r.Pantallas)
+            {
+                <div class="panel" style="box-shadow:var(--sombra-1);background:var(--fondo)">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                        <div>
+                            <div style="font-family:var(--fuente);font-weight:700;font-size:1.05rem">@p.Nombre</div>
+                            <div class="num" style="font-size:.78rem;color:var(--texto-tenue)">@p.Codigo</div>
+                        </div>
+                        <span class="etiqueta @(p.EnLinea ? "etiqueta-si" : "etiqueta-no")"
+                              data-estado="@p.PantallaId">
+                            <span class="punto @(p.EnLinea ? "punto-vivo" : "")"></span>
+                            @(p.EnLinea ? "En linea" : "Sin senal")
+                        </span>
+                    </div>
+
+                    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--borde)">
+                        <div class="cifra-etiqueta">Ruleta cargada</div>
+                        <div style="font-weight:600;margin-top:3px"
+                             data-ruleta-cargada="@p.PantallaId">
+                            @(p.NombreRuleta ?? "Ninguna. El pedestal esta en espera.")
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-contar]').forEach(elemento => {
+            const hasta = parseFloat(elemento.dataset.contar) || 0;
+            const simbolo = elemento.dataset.moneda;
+
+            S3K.contar(elemento, hasta, valor => simbolo
+                ? S3K.moneda(valor, simbolo)
+                : Math.round(valor).toLocaleString('es-PE'));
+        });
+
+        /* --------------------------------------------------- Datos en vivo ---
+           Antes esto era location.reload() cada 30 segundos: la pagina parpadeaba
+           y las cifras volvian a contar desde cero cada vez. Ahora se actualizan
+           los valores en su sitio.
+           -------------------------------------------------------------------- */
+        const MONEDA = '@r.MonedaSimbolo';
+
+        function texto(selector, valor) {
+            const elemento = document.querySelector(selector);
+            if (elemento) elemento.textContent = valor;
+        }
+
+        async function refrescarTablero() {
+            const respuesta = await S3K.get('/api/gestion/resumen');
+            if (!respuesta.ok) return;
+
+            const d = respuesta.datos;
+
+            texto('#cifraRuletas', d.ruletasActivas.toLocaleString('es-PE'));
+            texto('#cifraJugadas', d.jugadasHoy.toLocaleString('es-PE'));
+            texto('#cifraEntregado', S3K.moneda(d.entregadoHoy, MONEDA));
+            texto('#cifraPantallas', d.pantallasEnLinea);
+
+            // Barra del tope
+            const barra = document.querySelector('#barraTope > div');
+            if (barra && d.topeDiario > 0) {
+                const avance = Math.min(100, d.consumoTope / d.topeDiario * 100);
+                barra.style.width = avance + '%';
+            }
+
+            // Tarjetas de pedestal
+            d.pantallas.forEach(pantalla => {
+                const etiqueta = document.querySelector(`[data-estado="${pantalla.pantallaId}"]`);
+                if (etiqueta) {
+                    etiqueta.className = 'etiqueta ' + (pantalla.enLinea ? 'etiqueta-si' : 'etiqueta-no');
+                    etiqueta.innerHTML =
+                        `<span class="punto ${pantalla.enLinea ? 'punto-vivo' : ''}"></span>` +
+                        (pantalla.enLinea ? 'En linea' : 'Sin senal');
+                }
+
+                texto(`[data-ruleta-cargada="${pantalla.pantallaId}"]`,
+                    pantalla.nombreRuleta ?? 'Ninguna. El pedestal esta en espera.');
+            });
+        }
+
+        setInterval(refrescarTablero, 20000);
+    </script>
+}

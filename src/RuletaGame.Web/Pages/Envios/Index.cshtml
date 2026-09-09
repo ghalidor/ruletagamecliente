@@ -1,0 +1,240 @@
+@page
+@using RuletaGame.Domain.Entities
+@model RuletaGame.Web.Pages.Envios.IndexModel
+@{
+    ViewData["Titulo"] = "Envios";
+
+    string Etiqueta(string estado) => estado switch
+    {
+        EstadoEnvio.Enviado    => "etiqueta-si",
+        EstadoEnvio.Duplicado  => "etiqueta-marca",
+        EstadoEnvio.Fallido    => "etiqueta-no",
+        EstadoEnvio.Descartado => "etiqueta-no",
+        _                      => "etiqueta-neutra"
+    };
+
+    string Texto(string estado) => estado switch
+    {
+        EstadoEnvio.Enviado    => "Enviado",
+        EstadoEnvio.Duplicado  => "Ya existia",
+        EstadoEnvio.Fallido    => "Reintentando",
+        EstadoEnvio.Descartado => "Descartado",
+        _                      => "En cola"
+    };
+
+    int Cuantos(string estado) => Model.Conteo.GetValueOrDefault(estado, 0);
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Envios al sistema externo</h1>
+        <p>Clientes registrados que se mandan al otro sistema. El envio ocurre en segundo plano.</p>
+    </div>
+</div>
+
+<div class="rejilla rejilla-4" style="margin-bottom:18px">
+    <div class="tarjeta-cifra entra" style="--acento:var(--verde)">
+        <div class="cifra-etiqueta">Enviados</div>
+        <div class="cifra-valor num">@Cuantos(EstadoEnvio.Enviado)</div>
+        <div class="cifra-pie">Confirmados por el otro sistema</div>
+    </div>
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--azul)">
+        <div class="cifra-etiqueta">Ya existian</div>
+        <div class="cifra-valor num">@Cuantos(EstadoEnvio.Duplicado)</div>
+        <div class="cifra-pie">El documento ya estaba registrado</div>
+    </div>
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--oro)">
+        <div class="cifra-etiqueta">En cola</div>
+        <div class="cifra-valor num">
+            @(Cuantos(EstadoEnvio.Pendiente) + Cuantos(EstadoEnvio.Fallido))
+        </div>
+        <div class="cifra-pie">Se reintentan solos</div>
+    </div>
+
+    <div class="tarjeta-cifra entra" style="--acento:var(--rojo)">
+        <div class="cifra-etiqueta">Descartados</div>
+        <div class="cifra-valor num">@Cuantos(EstadoEnvio.Descartado)</div>
+        <div class="cifra-pie">Necesitan reintento manual</div>
+    </div>
+</div>
+
+<div class="panel entra">
+    <div class="panel-titulo">
+        <h2>Historial</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <a class="btn btn-sm @(Model.Filtro is null ? "btn-principal" : "")"
+               href="/Envios">Todos</a>
+            <a class="btn btn-sm @(Model.Filtro == EstadoEnvio.Fallido ? "btn-principal" : "")"
+               href="/Envios?estado=FALLIDO">Reintentando</a>
+            <a class="btn btn-sm @(Model.Filtro == EstadoEnvio.Descartado ? "btn-principal" : "")"
+               href="/Envios?estado=DESCARTADO">Descartados</a>
+        </div>
+    </div>
+
+    @if (Model.Lista.Count == 0)
+    {
+        <div class="vacio">
+            <div class="icono"><i class="bi bi-send"></i></div>
+            <h3>Sin envios</h3>
+            <p>
+                Aqui apareceran los clientes que se manden al sistema externo.
+                Actívalo en Ajustes con <strong>ENVIAR_CLIENTE_EXTERNO</strong>.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="tabla-envoltura">
+        <table id="tablaEnvios" class="dataTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Documento</th>
+                    <th>Cliente</th>
+                    <th>Estado</th>
+                    <th>Intentos</th>
+                    <th>Respuesta</th>
+                    <th style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var e in Model.Lista)
+            {
+                <tr>
+                    <td class="num" data-order="@e.FechaCreacion.ToString("yyyyMMddHHmm")">
+                        @e.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                    </td>
+                    <td class="num">@e.NumeroDocumento</td>
+                    <td>@e.NombreCompleto</td>
+                    <td><span class="etiqueta @Etiqueta(e.Estado)">@Texto(e.Estado)</span></td>
+                    <td class="num">
+                        @e.Intentos
+                        @if (e.ProximoIntento.HasValue && !e.EsFinal)
+                        {
+                            <div style="font-size:.76rem;color:var(--texto-tenue)">
+                                Reintenta @e.ProximoIntento.Value.ToString("HH:mm")
+                            </div>
+                        }
+                    </td>
+                    <td style="max-width:280px">
+                        @if (e.CodigoHttp.HasValue)
+                        {
+                            <span class="num" style="font-size:.8rem;color:var(--texto-tenue)">
+                                HTTP @e.CodigoHttp
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(e.Mensaje))
+                        {
+                            <div style="font-size:.82rem;overflow:hidden;
+                                        text-overflow:ellipsis;white-space:nowrap"
+                                 title="@e.Mensaje">@e.Mensaje</div>
+                        }
+                    </td>
+                    <td style="text-align:right;white-space:nowrap">
+                        <button class="btn btn-sm btn-icono" title="Ver el detalle"
+                                data-detalle="@e.EnvioId"
+                                data-peticion="@e.PeticionJson"
+                                data-respuesta="@e.RespuestaJson">
+                            <i class="bi bi-code-square"></i>
+                        </button>
+
+                        @if (!e.EsFinal || e.Estado == EstadoEnvio.Descartado)
+                        {
+                            <button class="btn btn-sm btn-icono" title="Reintentar ahora"
+                                    data-reintentar="@e.EnvioId">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:var(--superficie);border:1px solid var(--borde);
+         border-radius:var(--radio);box-shadow:var(--sombra-3)">
+      <div class="modal-body" style="padding:24px">
+        <h3 style="margin-bottom:16px">Detalle del envio</h3>
+
+        <div class="campo">
+            <label>Lo que se envio</label>
+            <pre id="verPeticion" class="bloque-json"></pre>
+        </div>
+
+        <div class="campo">
+            <label>Lo que respondieron</label>
+            <pre id="verRespuesta" class="bloque-json"></pre>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end">
+            <button class="btn" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Estilos {
+<style>
+    .bloque-json {
+        background: var(--fondo);
+        border: 1px solid var(--borde);
+        border-radius: var(--radio-sm);
+        padding: 12px 14px;
+        font-family: var(--mono);
+        font-size: .8rem;
+        color: var(--texto-medio);
+        max-height: 220px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin: 0;
+    }
+</style>
+}
+
+@section Scripts {
+<script>
+    S3K.tabla('#tablaEnvios', {
+        order: [[0, 'desc']],
+        columnDefs: [{ orderable: false, targets: [5, 6] }]
+    });
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+
+    /** Formatea el JSON si se puede; si no, lo muestra tal cual. */
+    function formatear(texto) {
+        if (!texto) return '(vacio)';
+        try   { return JSON.stringify(JSON.parse(texto), null, 2); }
+        catch { return texto; }
+    }
+
+    document.querySelectorAll('[data-detalle]').forEach(boton => {
+        boton.addEventListener('click', () => {
+            document.getElementById('verPeticion').textContent  = formatear(boton.dataset.peticion);
+            document.getElementById('verRespuesta').textContent = formatear(boton.dataset.respuesta);
+            modal.show();
+        });
+    });
+
+    document.querySelectorAll('[data-reintentar]').forEach(boton => {
+        boton.addEventListener('click', async () => {
+            const r = await S3K.post(`/Envios?handler=Reintentar&envioId=${boton.dataset.reintentar}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(r.datos.mensaje, 'ok');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+    });
+</script>
+}

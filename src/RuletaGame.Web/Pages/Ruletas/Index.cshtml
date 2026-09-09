@@ -1,0 +1,118 @@
+@page
+@model RuletaGame.Web.Pages.Ruletas.IndexModel
+@{
+    ViewData["Titulo"] = "Ruletas";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Ruletas</h1>
+        <p>Cada ruleta agrupa los premios que se dibujan en la rueda.</p>
+    </div>
+    <a class="btn btn-principal" href="/Ruletas/Editar"><i class="bi bi-plus-lg"></i> Nueva ruleta</a>
+</div>
+
+@if (Model.Lista.Count == 0)
+{
+    <div class="panel entra">
+        <div class="vacio">
+            <div class="icono"><i class="bi bi-record-circle"></i></div>
+            <h3>Todavia no hay ruletas</h3>
+            <p>Crea la primera y agregale los premios que van en la rueda.</p>
+            <a class="btn btn-principal" href="/Ruletas/Editar"><i class="bi bi-plus-lg"></i> Crear ruleta</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="panel entra">
+        <div class="tabla-envoltura">
+        <table id="tablaRuletas" class="dataTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Ruleta</th>
+                    <th>Premios</th>
+                    <th>Estado</th>
+                    <th>En pedestal</th>
+                    <th style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var ruleta in Model.Lista)
+            {
+                var enPedestal = Model.Pantallas
+                    .Where(p => p.RuletaAsignadaId == ruleta.RuletaId)
+                    .Select(p => p.Nombre).ToList();
+
+                <tr>
+                    <td>
+                        <div style="font-weight:600">@ruleta.Nombre</div>
+                        @if (!string.IsNullOrWhiteSpace(ruleta.Descripcion))
+                        {
+                            <div style="font-size:.82rem;color:var(--texto-tenue)">@ruleta.Descripcion</div>
+                        }
+                    </td>
+                    <td>
+                        <span class="num" style="font-weight:700">@ruleta.TajadasActivas</span>
+                        <span style="color:var(--texto-tenue);font-size:.85rem"> activos de @ruleta.TotalTajadas</span>
+                    </td>
+                    <td>
+                        <span class="etiqueta @(ruleta.Activo ? "etiqueta-si" : "etiqueta-no")">
+                            @(ruleta.Activo ? "Habilitada" : "Deshabilitada")
+                        </span>
+                    </td>
+                    <td>
+                        @if (enPedestal.Count > 0)
+                        {
+                            <span class="etiqueta etiqueta-si">
+                                <span class="punto punto-vivo"></span> @string.Join(", ", enPedestal)
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="color:var(--texto-tenue)">—</span>
+                        }
+                    </td>
+                    <td style="text-align:right;white-space:nowrap">
+                        <a class="btn btn-sm btn-icono" title="Premios"
+                           href="/Tajadas?ruletaId=@ruleta.RuletaId"><i class="bi bi-pie-chart-fill"></i></a>
+                        <a class="btn btn-sm btn-icono" title="Editar"
+                           href="/Ruletas/Editar?ruletaId=@ruleta.RuletaId"><i class="bi bi-pencil-fill"></i></a>
+                        <button class="btn btn-sm btn-icono btn-peligro" title="Eliminar"
+                                data-eliminar="@ruleta.RuletaId" data-nombre="@ruleta.Nombre">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    S3K.tabla('#tablaRuletas', { order: [[0, 'asc']], columnDefs: [{ orderable: false, targets: 4 }] });
+
+    document.querySelectorAll('[data-eliminar]').forEach(boton => {
+        boton.addEventListener('click', async () => {
+            const confirmado = await S3K.confirmar(
+                'Eliminar ruleta',
+                `Se eliminara "${boton.dataset.nombre}" y todos sus premios. Esta accion no se puede deshacer.`,
+                'Eliminar');
+
+            if (!confirmado) return;
+
+            const r = await S3K.post(`/Ruletas?handler=Eliminar&ruletaId=${boton.dataset.eliminar}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(r.datos.mensaje, 'ok');
+                setTimeout(() => location.reload(), 700);
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+    });
+</script>
+}

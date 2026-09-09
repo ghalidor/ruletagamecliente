@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------- .NET ----
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+artifacts/
+
+# Visual Studio
+.vs/
+*.vspscc
+*.vssscc
+*.psess
+*.vsp
+*.vspx
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# ---------------------------------------------------------------- Node ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# Salida de electron-builder
+kiosco-electron/dist/
+kiosco-electron/out/
+kiosco-electron/release/
+
+# -------------------------------------------------------------- Sistema ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log
+*.tmp
+*.bak

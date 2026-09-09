@@ -1,0 +1,285 @@
+@page
+@model RuletaGame.Web.Pages.Pantallas.IndexModel
+@{
+    ViewData["Titulo"] = "Pedestales";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Pedestales</h1>
+        <p>Elige que ruleta queda cargada en cada pantalla. El cambio se aplica al instante.</p>
+    </div>
+    <button class="btn btn-principal" id="btnNuevo"><i class="bi bi-plus-lg"></i> Registrar pedestal</button>
+</div>
+
+@if(Model.Lista.Count == 0)
+{
+    <div class="panel entra">
+        <div class="vacio">
+            <div class="icono"><i class="bi bi-tv"></i></div>
+            <h3>No hay pedestales registrados</h3>
+            <p>El codigo debe coincidir con el que tiene configurado la app del kiosco.</p>
+            <button class="btn btn-principal" id="btnNuevoVacio">
+                <i class="bi bi-plus-lg"></i> Registrar el primero
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="rejilla rejilla-2">
+        @foreach(var p in Model.Lista)
+        {
+            <div class="panel entra" data-pantalla-tarjeta="@p.PantallaId">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+                    <div>
+                        <h3>@p.Nombre</h3>
+                        <div class="num" style="font-size:.78rem;color:var(--texto-tenue)">@p.Codigo</div>
+                        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                            <span class="etiqueta @(p.EsWeb ? "etiqueta-marca" : "etiqueta-neutra")">
+                                <i class="bi bi-@(p.EsWeb ? "tablet" : "tv")"></i>
+                                @(p.EsWeb ? "Web" : "Pedestal")
+                            </span>
+                            @if(p.TopeMonto.HasValue)
+                            {
+                                <span class="etiqueta etiqueta-neutra" title="Tope propio de esta terminal">
+                                    <i class="bi bi-cash"></i> @p.TopeMonto.Value.ToString("N2")
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <span class="etiqueta @(p.EnLinea ? "etiqueta-si" : "etiqueta-no")"
+                          data-estado="@p.PantallaId">
+                        <span class="punto @(p.EnLinea ? "punto-vivo" : "")"></span>
+                        @(p.EnLinea ? "En linea" : "Sin senal")
+                    </span>
+                </div>
+
+                @if(!p.EnLinea)
+                {
+                    <div class="aviso aviso-info" style="margin:14px 0 0">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span>
+                            Sin senal desde @(p.UltimaConexion?.ToString("dd/MM HH:mm") ?? "nunca").
+                            Puedes cambiar la ruleta igual: se aplicara cuando el pedestal vuelva.
+                        </span>
+                    </div>
+                }
+
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--borde)">
+                    <label class="cifra-etiqueta" style="display:block;margin-bottom:7px">Ruleta cargada</label>
+
+                    <select class="selectRuleta" data-pantalla="@p.PantallaId" style="width:100%">
+                        <option value="0">— Ninguna, dejar en espera —</option>
+                        @foreach(var r in Model.Ruletas)
+                        {
+                            <option value="@r.RuletaId"
+                                    selected="@(p.RuletaAsignadaId == r.RuletaId)"
+                                    disabled="@(r.TajadasActivas == 0)">
+                                @r.Nombre@(r.TajadasActivas == 0 ? " (sin premios activos)" : "")
+                            </option>
+                        }
+                    </select>
+
+                    <div class="ayuda">Si el pedestal esta jugando, el cambio entra cuando vuelva a standby.</div>
+                </div>
+
+                <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btn btn-sm" data-editar="@p.PantallaId"
+                            data-codigo="@p.Codigo" data-nombre="@p.Nombre"
+                            data-tipo="@p.Tipo" data-tope="@(p.TopeMonto?.ToString("0.##") ?? "")">
+                        <i class="bi bi-pencil"></i> Editar datos
+                    </button>
+
+                    @if(p.RuletaAsignadaId.HasValue)
+                    {
+                        <a class="btn btn-sm" href="/Tajadas?ruletaId=@p.RuletaAsignadaId">
+                            <i class="bi bi-eye"></i> Ver la rueda
+                        </a>
+                    }
+
+                    @if(p.EsWeb)
+                    {
+                        <a class="btn btn-sm" href="/juego" target="_blank"
+                           title="Abrir la terminal en otra pestana">
+                            <i class="bi bi-box-arrow-up-right"></i> Abrir
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="modal fade" id="modalPantalla" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--superficie);border:1px solid var(--borde);
+         border-radius:var(--radio);box-shadow:var(--sombra-2)">
+            <div class="modal-body" style="padding:26px">
+                <h3 style="margin-bottom:18px" id="tituloModal">Registrar pedestal</h3>
+                <input type="hidden" id="campoId" value="0" />
+
+                <div class="campo">
+                    <label for="campoCodigo">Codigo</label>
+                    <input class="control num" id="campoCodigo" placeholder="PEDESTAL-01" />
+                    <div class="ayuda">
+                        Debe coincidir exactamente con el codigo configurado en la app del kiosco.
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <label for="campoNombre">Nombre visible</label>
+                    <input class="control" id="campoNombre" placeholder="Pedestal entrada principal" />
+                </div>
+
+                <div class="campo">
+                    <label for="campoTipo">Tipo de terminal</label>
+                    <select class="control" id="campoTipo">
+                        <option value="PEDESTAL">Pedestal — app instalada en una PC fija</option>
+                        <option value="WEB">Web — se abre en tablet o celular</option>
+                    </select>
+                    <div class="ayuda" id="ayudaTipo"></div>
+                </div>
+
+                <div class="campo" id="bloqueClave" style="display:none">
+                    <label for="campoClaveTerminal">Clave de acceso</label>
+                    <input class="control" id="campoClaveTerminal" type="text" autocomplete="off"
+                           placeholder="Minimo 4 caracteres" />
+                    <div class="ayuda" id="ayudaClave">
+                        Se pide al abrir la direccion en la tablet. Identifica a la terminal,
+                        no a la persona.
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <label for="campoTope">Tope propio (opcional)</label>
+                    <input class="control num" id="campoTope" type="number" step="0.01" min="0"
+                           placeholder="Vacio = usa el tope general" />
+                    <div class="ayuda">
+                        Si le pones un monto, esta terminal lleva su propia cuenta:
+                        <strong>reemplaza al tope general, no se suma con el</strong>.
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+                    <button class="btn" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-principal" id="btnGuardarPantalla">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        S3K.select('.selectRuleta');
+
+        $('.selectRuleta').on('change', async function () {
+            const r = await S3K.post(
+                `/Pantallas?handler=Asignar&pantallaId=${this.dataset.pantalla}&ruletaId=${this.value}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(r.datos.mensaje, 'ok');
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+                setTimeout(() => location.reload(), 1200);
+            }
+        });
+
+        const modal = new bootstrap.Modal(document.getElementById('modalPantalla'));
+
+        function ajustarTipo() {
+            const esWeb = document.getElementById('campoTipo').value === 'WEB';
+            const esNuevo = document.getElementById('campoId').value === '0';
+
+            document.getElementById('bloqueClave').style.display = esWeb ? '' : 'none';
+
+            document.getElementById('ayudaTipo').textContent = esWeb
+                ? 'Se abre en el navegador con una clave. Ideal para salir a la calle.'
+                : 'App Electron instalada en la PC del pedestal. Siempre encendida.';
+
+            document.getElementById('ayudaClave').textContent = esNuevo
+                ? 'Se pide al abrir la direccion en la tablet. Identifica a la terminal, no a la persona.'
+                : 'Dejala vacia para conservar la clave actual.';
+        }
+
+        function abrirModal(id = 0, codigo = '', nombre = '', tipo = 'PEDESTAL', tope = '') {
+            document.getElementById('campoId').value = id;
+            document.getElementById('campoCodigo').value = codigo;
+            document.getElementById('campoNombre').value = nombre;
+            document.getElementById('campoTipo').value = tipo;
+            document.getElementById('campoTope').value = tope;
+            document.getElementById('campoClaveTerminal').value = '';
+
+            document.getElementById('tituloModal').textContent =
+                id ? 'Editar terminal' : 'Registrar terminal';
+
+            ajustarTipo();
+            modal.show();
+        }
+
+        document.getElementById('campoTipo').addEventListener('change', ajustarTipo);
+
+        document.getElementById('btnNuevo')?.addEventListener('click', () => abrirModal());
+        document.getElementById('btnNuevoVacio')?.addEventListener('click', () => abrirModal());
+
+        document.querySelectorAll('[data-editar]').forEach(b =>
+            b.addEventListener('click', () => abrirModal(
+                b.dataset.editar, b.dataset.codigo, b.dataset.nombre,
+                b.dataset.tipo, b.dataset.tope)));
+
+        document.getElementById('btnGuardarPantalla').addEventListener('click', async () => {
+            const codigo = document.getElementById('campoCodigo').value.trim();
+            const nombre = document.getElementById('campoNombre').value.trim();
+
+            if (!codigo || !nombre) {
+                S3K.aviso('Completa el codigo y el nombre.', 'error');
+                return;
+            }
+
+            const q = new URLSearchParams({
+                handler: 'Guardar',
+                pantallaId: document.getElementById('campoId').value,
+                codigo, nombre,
+                tipo: document.getElementById('campoTipo').value,
+                topeMonto: document.getElementById('campoTope').value,
+                clave: document.getElementById('campoClaveTerminal').value
+            });
+
+            const r = await S3K.post(`/Pantallas?${q}`);
+
+            if (r.datos?.exito) {
+                modal.hide();
+                S3K.aviso(r.datos.mensaje, 'ok');
+                setTimeout(() => location.reload(), 700);
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+
+        /* ------------------------------------------------- Estado en vivo ---
+           Antes esto era location.reload() cada 45 segundos, y eso borraba lo que
+           estuvieras escribiendo en el modal y reiniciaba los Select2. Ahora solo
+           se repinta la etiqueta de estado, sin tocar el resto de la pagina.
+           -------------------------------------------------------------------- */
+        async function refrescarEstados() {
+            // Si hay un modal abierto, el operador esta trabajando: no se molesta.
+            if (document.querySelector('.modal.show')) return;
+
+            const r = await S3K.get('/api/gestion/resumen');
+            if (!r.ok) return;
+
+            r.datos.pantallas.forEach(pantalla => {
+                const etiqueta = document.querySelector(`[data-estado="${pantalla.pantallaId}"]`);
+                if (!etiqueta) return;
+
+                etiqueta.className = 'etiqueta ' + (pantalla.enLinea ? 'etiqueta-si' : 'etiqueta-no');
+                etiqueta.innerHTML =
+                    `<span class="punto ${pantalla.enLinea ? 'punto-vivo' : ''}"></span>` +
+                    (pantalla.enLinea ? 'En linea' : 'Sin senal');
+            });
+        }
+
+        setInterval(refrescarEstados, 20000);
+    </script>
+}

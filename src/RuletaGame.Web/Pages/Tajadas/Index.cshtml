@@ -1,0 +1,319 @@
+@page
+@model RuletaGame.Web.Pages.Tajadas.IndexModel
+@{
+    ViewData["Titulo"] = "Premios";
+    var ruleta  = Model.Ruleta!;
+    decimal suma = Model.SumaPorcentaje * 100m;
+    bool creada  = Request.Query["creada"] == "true";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Premios</h1>
+        <p>
+            Ruleta: <strong style="color:var(--texto)">@ruleta.Nombre</strong>
+            · @ruleta.TajadasActivas activos de @ruleta.TotalTajadas
+        </p>
+    </div>
+    <div style="display:flex;gap:10px">
+        <a class="btn" href="/Ruletas"><i class="bi bi-arrow-left"></i> Ruletas</a>
+        <a class="btn btn-principal" href="/Tajadas/Editar?ruletaId=@ruleta.RuletaId">
+            <i class="bi bi-plus-lg"></i> Nuevo premio
+        </a>
+    </div>
+</div>
+
+@if (creada)
+{
+    <div class="aviso aviso-ok entra">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Ruleta creada. Ahora carga los premios que van en la rueda.</span>
+    </div>
+}
+
+<div class="panel entra" style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div>
+            <div class="cifra-etiqueta">Suma de probabilidades</div>
+            <div id="sumaPorcentaje" class="num"
+                 style="font-family:var(--fuente);font-weight:900;font-size:1.5rem">
+                @suma.ToString("0.##")%
+            </div>
+        </div>
+        <div style="flex:1;min-width:220px">
+            <div style="height:10px;background:var(--fondo);border-radius:999px;
+                        box-shadow:var(--sombra-1);overflow:hidden">
+                <div id="barraSuma" style="height:100%;border-radius:999px;
+                     width:@Math.Min(100, suma).ToString("0.##")%;
+                     background:linear-gradient(90deg,var(--verde),var(--marca));
+                     transition:width .5s"></div>
+            </div>
+            <div class="ayuda" id="ayudaSuma">
+                @if (suma == 0)
+                {
+                    <text>Sin probabilidades: el sorteo es uniforme entre todos los premios activos.</text>
+                }
+                else if (suma < 100)
+                {
+                    <text>Queda @((100 - suma).ToString("0.##"))% sin repartir.</text>
+                }
+                else
+                {
+                    <text>Repartido al 100%.</text>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Lista.Count == 0)
+{
+    <div class="panel entra">
+        <div class="vacio">
+            <div class="icono"><i class="bi bi-gift"></i></div>
+            <h3>Esta ruleta no tiene premios</h3>
+            <p>Agrega al menos dos para que la rueda tenga sentido.</p>
+            <a class="btn btn-principal" href="/Tajadas/Editar?ruletaId=@ruleta.RuletaId">
+                <i class="bi bi-plus-lg"></i> Agregar premio
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="rejilla rejilla-previa" style="align-items:start">
+
+    <div class="panel entra" style="order:1">
+        <div class="tabla-envoltura">
+        <table id="tablaTajadas" class="dataTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th style="width:34px"></th>
+                    <th>Premio</th>
+                    <th>Tipo</th>
+                    <th style="width:130px">Probabilidad</th>
+                    <th style="width:100px">Descuenta</th>
+                    <th style="width:90px">Activo</th>
+                    <th style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var t in Model.Lista)
+            {
+                <tr data-color style="--color-tajada:@t.Color">
+                    <td>
+                        <span style="display:inline-block;width:14px;height:14px;border-radius:4px;
+                                     background:@t.Color;box-shadow:var(--sombra-1)"></span>
+                    </td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            @if (t.Tipo == TipoTajada.Producto && !string.IsNullOrWhiteSpace(t.Imagen))
+                            {
+                                <img src="@t.Imagen" alt="" style="width:44px;height:32px;object-fit:cover;
+                                     border-radius:4px;border:1px solid var(--borde)" />
+                            }
+                            <div>
+                                <div style="font-weight:600">
+                                    @(t.Tipo == TipoTajada.Monto
+                                        ? $"{Model.Moneda}{t.Monto:0.##}"
+                                        : t.Descripcion)
+                                </div>
+                                @if (t.Tipo == TipoTajada.Monto && !string.IsNullOrWhiteSpace(t.Descripcion))
+                                {
+                                    <div style="font-size:.8rem;color:var(--texto-tenue)">@t.Descripcion</div>
+                                }
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="etiqueta etiqueta-neutra">
+                            @(t.Tipo == TipoTajada.Monto ? "Monto" : "Producto")
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:5px">
+                            <input type="number" class="control num" style="width:78px;padding:6px 8px"
+                                   value="@((t.Probabilidad * 100m)?.ToString("0.##"))"
+                                   min="0" max="100" step="0.01" data-prob="@t.TajadaId" />
+                            <span style="color:var(--texto-tenue)">%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch" title="Si descuenta del tope diario">
+                            <input class="form-check-input" type="checkbox"
+                                   data-tope="@t.TajadaId" @(t.AfectaTope ? "checked" : "") />
+                        </div>
+                    </td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                                   data-activo="@t.TajadaId" @(t.Activo ? "checked" : "") />
+                        </div>
+                    </td>
+                    <td style="text-align:right;white-space:nowrap">
+                        <a class="btn btn-sm btn-icono" title="Editar"
+                           href="/Tajadas/Editar?ruletaId=@ruleta.RuletaId&tajadaId=@t.TajadaId">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <button class="btn btn-sm btn-icono btn-peligro" title="Eliminar"
+                                data-eliminar="@t.TajadaId"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        </div>
+
+        <p class="ayuda" style="margin-top:14px">
+            <i class="bi bi-info-circle"></i>
+            <strong>Descuenta</strong> define si el monto del premio resta del tope diario.
+            Desmarcalo en los productos para que un objeto fisico no consuma el presupuesto de efectivo.
+        </p>
+    </div>
+
+    <div class="panel entra" id="panelPrevia" style="order:2;position:sticky;top:20px">
+        <div class="panel-titulo">
+            <h2>Vista previa</h2>
+            <span class="etiqueta etiqueta-marca" id="contadorTajadas"></span>
+        </div>
+
+        <div class="previa">
+            <canvas id="previaRueda" width="320" height="320"></canvas>
+            <p class="previa-nota">
+                Asi se vera en el pedestal. Solo se dibujan los premios activos.
+                El arte real de la rueda lo pone la app del kiosco.
+            </p>
+        </div>
+    </div>
+
+    </div>
+}
+
+@section Scripts {
+<script>
+    const RULETA_ID = @ruleta.RuletaId;
+
+    // Estado de la previa. Se actualiza en vivo con cada cambio de la tabla,
+    // asi el operador ve el efecto antes de mandar la ruleta al pedestal.
+    const TAJADAS = [
+        @foreach (var t in Model.Lista)
+        {
+            @:{ id: @t.TajadaId, texto: @Html.Raw(Json.Serialize(t.TextoEnRueda(Model.Moneda))), color: "@t.Color", activo: @(t.Activo ? "true" : "false") },
+        }
+    ];
+
+    const lienzoPrevia = document.getElementById('previaRueda');
+
+    function refrescarPrevia() {
+        PreviaRueda.dibujar(lienzoPrevia, TAJADAS);
+
+        const activas = TAJADAS.filter(t => t.activo).length;
+        document.getElementById('contadorTajadas').textContent =
+            activas === 1 ? '1 premio' : `${activas} premios`;
+    }
+
+    refrescarPrevia();
+    window.addEventListener('resize', refrescarPrevia);
+
+    // La previa toma sus colores del tema, asi que hay que repintarla al cambiarlo.
+    document.getElementById('btnTema')?.addEventListener('click', () =>
+        setTimeout(refrescarPrevia, 60));
+
+    S3K.tabla('#tablaTajadas', {
+        order: [], paging: false, info: false,
+        columnDefs: [{ orderable: false, targets: [0, 3, 4, 5, 6] }]
+    });
+
+    function pintarSuma(suma) {
+        const limpio = suma.toFixed(2).replace(/\.?0+$/, '');
+        document.getElementById('sumaPorcentaje').textContent = limpio + '%';
+        document.getElementById('barraSuma').style.width = Math.min(100, suma) + '%';
+
+        document.getElementById('ayudaSuma').textContent = suma === 0
+            ? 'Sin probabilidades: el sorteo es uniforme entre todos los premios activos.'
+            : suma < 100
+                ? `Queda ${(100 - suma).toFixed(2).replace(/\.?0+$/, '')}% sin repartir.`
+                : 'Repartido al 100%.';
+    }
+
+    // Probabilidad: guarda al salir del campo o con Enter
+    document.querySelectorAll('[data-prob]').forEach(campo => {
+        let anterior = campo.value;
+
+        const guardar = async () => {
+            if (campo.value === anterior) return;
+
+            const r = await S3K.post(
+                `/Tajadas?handler=Probabilidad&tajadaId=${campo.dataset.prob}` +
+                `&porcentaje=${campo.value || 0}&ruletaId=${RULETA_ID}`);
+
+            if (r.datos?.exito) {
+                anterior = campo.value;
+                campo.classList.remove('invalido');
+                pintarSuma(r.datos.suma);
+                S3K.aviso('Probabilidad actualizada.', 'ok');
+            } else {
+                campo.classList.add('invalido');
+                campo.value = anterior;
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        };
+
+        campo.addEventListener('blur', guardar);
+        campo.addEventListener('keydown', e => { if (e.key === 'Enter') campo.blur(); });
+    });
+
+    document.querySelectorAll('[data-activo]').forEach(check => {
+        check.addEventListener('change', async () => {
+            const r = await S3K.post(
+                `/Tajadas?handler=Toggle&tajadaId=${check.dataset.activo}` +
+                `&activo=${check.checked}&ruletaId=${RULETA_ID}`);
+
+            if (r.datos?.exito) {
+                const tajada = TAJADAS.find(t => t.id == check.dataset.activo);
+                if (tajada) { tajada.activo = check.checked; refrescarPrevia(); }
+
+                S3K.aviso(check.checked ? 'Premio activado.' : 'Premio desactivado.', 'ok');
+            } else {
+                check.checked = !check.checked;
+                S3K.aviso('No se pudo cambiar el estado.', 'error');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-tope]').forEach(check => {
+        check.addEventListener('change', async () => {
+            const r = await S3K.post(
+                `/Tajadas?handler=ToggleTope&tajadaId=${check.dataset.tope}` +
+                `&afectaTope=${check.checked}&ruletaId=${RULETA_ID}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(check.checked
+                    ? 'Este premio descuenta del tope.'
+                    : 'Este premio ya no descuenta del tope.', 'ok');
+            } else {
+                check.checked = !check.checked;
+                S3K.aviso('No se pudo cambiar.', 'error');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-eliminar]').forEach(boton => {
+        boton.addEventListener('click', async () => {
+            if (!await S3K.confirmar('Eliminar premio',
+                'Se quitara de la rueda. Las jugadas ya registradas no se tocan.', 'Eliminar')) return;
+
+            const r = await S3K.post(
+                `/Tajadas?handler=Eliminar&tajadaId=${boton.dataset.eliminar}&ruletaId=${RULETA_ID}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(r.datos.mensaje, 'ok');
+                setTimeout(() => location.reload(), 700);
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+    });
+</script>
+}

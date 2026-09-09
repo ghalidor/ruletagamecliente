@@ -1,0 +1,217 @@
+@page
+@model RuletaGame.Web.Pages.Usuarios.IndexModel
+@using System.Security.Claims
+@{
+    ViewData["Titulo"] = "Usuarios";
+    var propio = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Usuarios</h1>
+        <p>El sistema anterior no tenia login: cualquiera con la URL entraba al gestor.</p>
+    </div>
+    <button class="btn btn-principal" id="btnNuevo"><i class="bi bi-person-plus-fill"></i> Nuevo usuario</button>
+</div>
+
+@if (Model.Lista.Count == 1)
+{
+    <div class="aviso aviso-info entra">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>
+            Eres el unico usuario, por eso no ves interruptores para deshabilitar.
+            Crea otro usuario y podras administrarlo desde aqui.
+        </span>
+    </div>
+}
+
+<div class="panel entra">
+    <div class="tabla-envoltura">
+        <table id="tablaUsuarios" class="dataTable" style="width:100%">
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Nombre</th>
+                <th>Rol</th>
+                <th>Ultimo acceso</th>
+                <th style="width:90px">Activo</th>
+                <th style="text-align:right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var u in Model.Lista)
+        {
+            <tr>
+                <td>
+                    <span class="num" style="font-weight:600">@u.NombreUsuario</span>
+                    @if (u.UsuarioId.ToString() == propio)
+                    {
+                        <span class="etiqueta etiqueta-neutra" style="margin-left:6px">tu</span>
+                    }
+                    @if (u.DebeCambiarPassword)
+                    {
+                        <div style="font-size:.78rem;color:var(--marca)">
+                            <i class="bi bi-key"></i> Debe cambiar la clave
+                        </div>
+                    }
+                </td>
+                <td>@u.NombreCompleto</td>
+                <td><span class="etiqueta etiqueta-neutra">@u.Rol</span></td>
+                <td class="num" style="font-size:.85rem;color:var(--texto-medio)">
+                    @(u.UltimoAcceso?.ToString("dd/MM/yyyy HH:mm") ?? "Nunca")
+                    @if (u.EstaBloqueado)
+                    {
+                        <div style="color:var(--rojo);font-size:.78rem">
+                            <i class="bi bi-lock-fill"></i> Bloqueado
+                        </div>
+                    }
+                </td>
+                <td>
+                    @if (u.UsuarioId.ToString() == propio)
+                    {
+                        @* Tu propio usuario no se puede deshabilitar: seria quedarse
+                           afuera del sistema con un solo click. Se muestra un candado
+                           con explicacion en vez de un interruptor que no responde. *@
+                        <span class="etiqueta etiqueta-neutra"
+                              title="No puedes deshabilitar tu propio usuario">
+                            <i class="bi bi-lock-fill"></i> Tu cuenta
+                        </span>
+                    }
+                    else
+                    {
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                                   data-activo="@u.UsuarioId" @(u.Activo ? "checked" : "") />
+                        </div>
+                    }
+                </td>
+                <td style="text-align:right">
+                    <button class="btn btn-sm btn-icono" title="Editar"
+                            data-editar="@u.UsuarioId" data-usuario="@u.NombreUsuario"
+                            data-nombre="@u.NombreCompleto" data-rol="@u.Rol">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalUsuario" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--superficie);border:1px solid var(--borde);
+         border-radius:var(--radio);box-shadow:var(--sombra-2)">
+      <div class="modal-body" style="padding:26px">
+        <h3 style="margin-bottom:18px" id="tituloModal">Nuevo usuario</h3>
+        <input type="hidden" id="campoId" value="0" />
+
+        <div class="campo">
+            <label for="campoUsuario">Usuario</label>
+            <input class="control num" id="campoUsuario" autocomplete="off" />
+            <div class="ayuda" id="ayudaUsuario">Con este nombre inicia sesion.</div>
+        </div>
+
+        <div class="campo">
+            <label for="campoNombre">Nombre completo</label>
+            <input class="control" id="campoNombre" />
+        </div>
+
+        <div class="campo">
+            <label for="campoRol">Rol</label>
+            <select class="control" id="campoRol">
+                <option value="OPERADOR">Operador — solo opera las ruletas</option>
+                <option value="ADMIN">Admin — todo menos crear superadmins</option>
+                @if (User.IsInRole(Rol.SuperAdmin))
+                {
+                    <option value="SUPERADMIN">Superadmin — control total</option>
+                }
+            </select>
+        </div>
+
+        <div class="campo">
+            <label for="campoPassword">Contrasena</label>
+            <input class="control" id="campoPassword" type="password" autocomplete="new-password" />
+            <div class="ayuda" id="ayudaPassword">
+                Minimo 8 caracteres. El usuario tendra que cambiarla al ingresar.
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+            <button class="btn" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-principal" id="btnGuardar">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+    S3K.tabla('#tablaUsuarios', { order: [[0, 'asc']], columnDefs: [{ orderable: false, targets: [4, 5] }] });
+
+    const modal = new bootstrap.Modal(document.getElementById('modalUsuario'));
+
+    function abrir(id = 0, usuario = '', nombre = '', rol = 'OPERADOR') {
+        document.getElementById('campoId').value       = id;
+        document.getElementById('campoUsuario').value  = usuario;
+        document.getElementById('campoNombre').value   = nombre;
+        document.getElementById('campoRol').value      = rol;
+        document.getElementById('campoPassword').value = '';
+
+        // El nombre de usuario no se cambia despues de creado.
+        document.getElementById('campoUsuario').disabled = id > 0;
+        document.getElementById('ayudaUsuario').textContent = id > 0
+            ? 'El nombre de usuario no se puede cambiar.'
+            : 'Con este nombre inicia sesion.';
+        document.getElementById('ayudaPassword').textContent = id > 0
+            ? 'Dejala vacia para no cambiarla.'
+            : 'Minimo 8 caracteres. El usuario tendra que cambiarla al ingresar.';
+        document.getElementById('tituloModal').textContent = id ? 'Editar usuario' : 'Nuevo usuario';
+
+        modal.show();
+    }
+
+    document.getElementById('btnNuevo').addEventListener('click', () => abrir());
+
+    document.querySelectorAll('[data-editar]').forEach(b =>
+        b.addEventListener('click', () =>
+            abrir(b.dataset.editar, b.dataset.usuario, b.dataset.nombre, b.dataset.rol)));
+
+    document.getElementById('btnGuardar').addEventListener('click', async () => {
+        const q = new URLSearchParams({
+            handler:        'Guardar',
+            usuarioId:      document.getElementById('campoId').value,
+            nombreUsuario:  document.getElementById('campoUsuario').value.trim(),
+            nombreCompleto: document.getElementById('campoNombre').value.trim(),
+            rol:            document.getElementById('campoRol').value,
+            password:       document.getElementById('campoPassword').value
+        });
+
+        const r = await S3K.post(`/Usuarios?${q}`);
+
+        if (r.datos?.exito) {
+            modal.hide();
+            S3K.aviso(r.datos.mensaje, 'ok');
+            setTimeout(() => location.reload(), 700);
+        } else {
+            S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+        }
+    });
+
+    document.querySelectorAll('[data-activo]').forEach(check => {
+        check.addEventListener('change', async () => {
+            const r = await S3K.post(
+                `/Usuarios?handler=Toggle&usuarioId=${check.dataset.activo}&activo=${check.checked}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(check.checked ? 'Usuario habilitado.' : 'Usuario deshabilitado.', 'ok');
+            } else {
+                check.checked = !check.checked;
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+    });
+</script>
+}

@@ -1,0 +1,128 @@
+@page
+@model RuletaGame.Web.Pages.Tajadas.EditarModel
+@{
+    ViewData["Titulo"] = Model.EsNuevo ? "Nuevo premio" : "Editar premio";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>@(Model.EsNuevo ? "Nuevo premio" : "Editar premio")</h1>
+        <p>Ruleta: <strong style="color:var(--texto)">@Model.Ruleta!.Nombre</strong></p>
+    </div>
+    <a class="btn" href="/Tajadas?ruletaId=@Model.Datos.RuletaId">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<form method="post" enctype="multipart/form-data" style="max-width:640px">
+    <input type="hidden" asp-for="Datos.TajadaId" />
+    <input type="hidden" asp-for="Datos.RuletaId" />
+
+    <div class="panel entra">
+        <div asp-validation-summary="ModelOnly" class="aviso aviso-error"></div>
+
+        <div class="campo">
+            <label asp-for="Datos.Tipo">Tipo de premio</label>
+            <select class="control" asp-for="Datos.Tipo" id="selectTipo">
+                <option value="0">Monto — dinero</option>
+                <option value="1">Producto — objeto fisico</option>
+            </select>
+            <div class="ayuda">
+                En la rueda, un monto se dibuja como <strong>@Model.Moneda 500</strong>;
+                un producto muestra su descripcion y su imagen.
+            </div>
+        </div>
+
+        <div class="campo">
+            <label asp-for="Datos.Descripcion">Descripcion</label>
+            <input class="control" asp-for="Datos.Descripcion" placeholder="Polo de la casa" />
+            <span asp-validation-for="Datos.Descripcion" class="error-campo"></span>
+            <div class="ayuda" id="ayudaDescripcion"></div>
+        </div>
+
+        <div class="campo">
+            <label asp-for="Datos.Monto">Monto (@Model.Moneda)</label>
+            <input class="control num" asp-for="Datos.Monto" type="number" step="0.01" min="0" />
+            <span asp-validation-for="Datos.Monto" class="error-campo"></span>
+            <div class="ayuda" id="ayudaMonto"></div>
+        </div>
+
+        <div class="campo" id="bloqueImagen" style="display:none">
+            <label asp-for="Archivo">Imagen del producto</label>
+
+            @if(!string.IsNullOrWhiteSpace(Model.ImagenActual))
+            {
+                <div style="margin-bottom:10px">
+                    <img src="@Model.ImagenActual" alt="Imagen actual"
+                         style="max-width:220px;border-radius:var(--radio-sm);
+                                border:1px solid var(--borde)" />
+                    <div class="ayuda">Imagen actual. Sube otra solo si quieres reemplazarla.</div>
+                </div>
+            }
+
+            <input class="control" asp-for="Archivo" type="file"
+                   accept=".jpg,.jpeg,.png,.webp,.gif,.bmp" />
+            <span asp-validation-for="Archivo" class="error-campo"></span>
+            <div class="ayuda">Se redimensiona sola a 900x400 como maximo y se guarda en WebP.</div>
+        </div>
+
+        <div class="campo">
+            <label>Opciones</label>
+
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;
+                          letter-spacing:normal;font-weight:400;cursor:pointer;margin-bottom:10px">
+                <input type="checkbox" asp-for="Datos.Activo" class="form-check-input" style="margin:0" />
+                <span>Activo — se dibuja en la rueda</span>
+            </label>
+
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;
+                          letter-spacing:normal;font-weight:400;cursor:pointer">
+                <input type="checkbox" asp-for="Datos.AfectaTope" class="form-check-input" style="margin:0" />
+                <span>Descuenta del tope diario</span>
+            </label>
+            <div class="ayuda">
+                Desmarcalo en productos para que un objeto fisico no consuma
+                el presupuesto de efectivo del dia.
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:22px">
+            <button type="submit" class="btn btn-principal"><i class="bi bi-check-lg"></i> Guardar</button>
+            <a class="btn" href="/Tajadas?ruletaId=@Model.Datos.RuletaId">Cancelar</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const selectTipo = document.getElementById('selectTipo');
+        const bloqueImagen = document.getElementById('bloqueImagen');
+        const ayudaDesc = document.getElementById('ayudaDescripcion');
+        const ayudaMonto = document.getElementById('ayudaMonto');
+
+        function ajustar() {
+            const esProducto = selectTipo.value === '1';
+
+            bloqueImagen.style.display = esProducto ? '' : 'none';
+
+            ayudaDesc.textContent = esProducto
+                ? 'Este texto es el que se dibuja en la tajada de la rueda.'
+                : 'Solo para tu referencia interna. En la rueda se muestra el monto.';
+
+            ayudaMonto.textContent = esProducto
+                ? 'Valor referencial del producto. Solo cuenta para el tope si marcaste "Descuenta".'
+                : 'Es lo que se dibuja en la rueda y lo que se entrega al cliente.';
+        }
+
+        // Select2 oculta el select nativo, asi que su evento change no llega solo:
+        // hay que escuchar tambien el evento propio de Select2. Y se inicializa
+        // ANTES de enganchar, porque si no los manejadores se pierden.
+        S3K.select('#selectTipo', { minimumResultsForSearch: Infinity });
+
+        $('#selectTipo').on('change select2:select', ajustar);
+        selectTipo.addEventListener('change', ajustar);
+
+        ajustar();
+    </script>
+}

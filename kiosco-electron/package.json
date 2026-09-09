@@ -1,0 +1,49 @@
+{
+  "name": "s3k-kiosco",
+  "version": "1.0.0",
+  "description": "Kiosco de ruleta para pedestal tactil",
+  "main": "src/principal.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "pe.s3k.kiosco",
+    "productName": "S3K Kiosco",
+    "directories": {
+      "output": "build/salida"
+    },
+    "files": [
+      "src/**/*",
+      "config.json",
+      "package.json"
+    ],
+    "extraResources": [
+      "config.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^10.0.11"
+  }
+}

@@ -1,0 +1,114 @@
+@using System.Security.Claims
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    // Token antiforgery para los POST por fetch del gestor.
+    var tokens = Antiforgery.GetAndStoreTokens(ViewContext.HttpContext);
+
+    string nombre  = User.FindFirst("nombre_completo")?.Value ?? "";
+    string iniciales = string.Concat(nombre.Split(' ',
+        StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => p[0])).ToUpper();
+
+    string actual = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    string Clase(string ruta) =>
+        actual.StartsWith(ruta, StringComparison.OrdinalIgnoreCase) ? "nav-item activo" : "nav-item";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="antiforgery" content="@tokens.RequestToken" />
+
+    <title>@ViewData["Titulo"] · Gestor Ruleta</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+    @* asp-append-version agrega un hash del archivo a la URL: cuando el archivo
+       cambia, cambia la URL y el navegador baja la version nueva sola. *@
+    <link rel="stylesheet" href="~/css/gestor.css" asp-append-version="true" />
+
+    <script>
+        // Antes de pintar, para que no haya un destello del tema equivocado.
+        (function () {
+            var tema = localStorage.getItem('tema') || 'claro';
+            document.documentElement.setAttribute('data-tema', tema);
+            if (localStorage.getItem('barraMin') === '1')
+                document.documentElement.classList.add('pre-barra-min');
+        })();
+    </script>
+
+    @await RenderSectionAsync("Estilos", required: false)
+</head>
+<body>
+    <div class="marco">
+        <nav class="barra-lateral">
+            <div class="barra-cabecera">
+                <span class="marca-disco"></span>
+                <span class="marca-texto">Gestor Ruleta</span>
+                <button class="btn-menu" id="btnMenu" title="Contraer menu" aria-label="Contraer menu">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+
+            <a class="@Clase("/Index")" href="/" data-titulo="Tablero">
+                <i class="bi bi-speedometer2"></i><span>Tablero</span></a>
+            <a class="@Clase("/Ruletas")" href="/Ruletas" data-titulo="Ruletas">
+                <i class="bi bi-record-circle"></i><span>Ruletas</span></a>
+            <a class="@Clase("/Pantallas")" href="/Pantallas" data-titulo="Pedestales">
+                <i class="bi bi-tv"></i><span>Pedestales</span></a>
+            <a class="@Clase("/Reportes")" href="/Reportes" data-titulo="Reportes">
+                <i class="bi bi-bar-chart"></i><span>Reportes</span></a>
+            <a class="@Clase("/Envios")" href="/Envios" data-titulo="Envios">
+                <i class="bi bi-send"></i><span>Envios</span></a>
+            <a class="@Clase("/Configuracion")" href="/Configuracion" data-titulo="Ajustes">
+                <i class="bi bi-sliders"></i><span>Ajustes</span></a>
+
+            @if (User.IsInRole(Rol.SuperAdmin) || User.IsInRole(Rol.Admin))
+            {
+                <a class="@Clase("/Usuarios")" href="/Usuarios" data-titulo="Usuarios">
+                    <i class="bi bi-people"></i><span>Usuarios</span></a>
+            }
+
+            <div class="pie-lateral">
+                <div class="tarjeta-usuario">
+                    <div class="avatar">@(iniciales.Length > 0 ? iniciales : "?")</div>
+                    <div class="datos" style="min-width:0">
+                        <div style="font-size:.85rem;font-weight:600;white-space:nowrap;
+                                    overflow:hidden;text-overflow:ellipsis">@nombre</div>
+                        <div style="font-size:.74rem;color:var(--texto-tenue)">
+                            @User.FindFirstValue(ClaimTypes.Role)
+                        </div>
+                    </div>
+                </div>
+
+                <a class="nav-item" href="#" id="btnTema" data-titulo="Cambiar tema">
+                    <i class="bi bi-moon-stars" id="iconoTema"></i><span id="textoTema">Tema oscuro</span></a>
+                <a class="nav-item" href="#" id="btnSalir" data-titulo="Salir">
+                    <i class="bi bi-box-arrow-right"></i><span>Salir</span></a>
+            </div>
+        </nav>
+
+        <main class="contenido">
+            @if (TempData["Mensaje"] is string mensaje)
+            {
+                <div class="aviso aviso-ok"><i class="bi bi-check-circle-fill"></i> <span>@mensaje</span></div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+    <script src="~/js/previa-ruleta.js" asp-append-version="true"></script>
+    <script src="~/js/gestor.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

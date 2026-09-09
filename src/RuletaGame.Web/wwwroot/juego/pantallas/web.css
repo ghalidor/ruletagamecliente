@@ -1,0 +1,221 @@
+/* ============================================================================
+   Terminal web: lo que se agrega sobre el diseno del kiosco.
+
+   El juego se ve exactamente igual. Aca solo esta lo que el pedestal no
+   necesita: la pantalla de acceso y el boton de bloquear.
+   ============================================================================ */
+
+/* En navegador el arrastre y el zoom por pellizco arruinan una pantalla
+   tactil de juego. En Electron esto lo resolvia el modo kiosco. */
+html, body {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ------------------------------------------------------------- Acceso --- */
+.capa-acceso {
+    background: radial-gradient(ellipse at center, #1A1206 0%, #000 72%);
+    z-index: 400;
+}
+
+.tarjeta-acceso {
+    background: linear-gradient(180deg, #1E1206 0%, #0B0705 100%);
+    border: 2px solid var(--oro);
+    border-radius: clamp(14px, 2.6vh, 26px);
+    box-shadow: 0 0 6vh rgba(240, 196, 25, .25), 0 2vh 6vh rgba(0, 0, 0, .75);
+    width: min(92vw, 420px);
+    padding: clamp(22px, 4vh, 40px) clamp(18px, 3vw, 34px);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.8vh, 20px);
+    align-items: stretch;
+}
+
+.acceso-marca {
+    display: flex;
+    justify-content: center;
+}
+
+/* Disco con los colores de la rueda, igual que en el gestor */
+.disco-marca {
+    width: clamp(48px, 8vh, 76px);
+    height: clamp(48px, 8vh, 76px);
+    border-radius: 50%;
+    background: conic-gradient( #27CC0A 0deg 72deg, #D6A902 72deg 144deg, #D40108 144deg 216deg, #9604A6 216deg 288deg, #0261DC 288deg 360deg);
+    box-shadow: inset 0 0 0 7px #0B0705, 0 0 0 2px var(--oro);
+}
+
+.tarjeta-acceso h2 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(17px, 3vh, 28px);
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.tarjeta-acceso .tenue {
+    font-size: clamp(12px, 1.8vh, 17px);
+    margin: 0;
+}
+
+.campo-clave {
+    width: 100%;
+    background: rgba(0, 0, 0, .55);
+    border: 2px solid rgba(255, 255, 255, .2);
+    border-radius: 12px;
+    color: var(--texto);
+    font-family: var(--display);
+    font-size: clamp(18px, 3vh, 30px);
+    text-align: center;
+    letter-spacing: .12em;
+    padding: clamp(10px, 1.8vh, 18px);
+    min-height: 52px;
+}
+
+    .campo-clave:focus {
+        outline: none;
+        border-color: var(--oro);
+    }
+
+    .campo-clave.invalido {
+        border-color: #FF6B76;
+    }
+
+.tarjeta-acceso .boton {
+    width: 100%;
+    min-height: clamp(44px, 6.4vh, 62px);
+}
+
+/* --------------------------------------------------------- Bloquear --- */
+/* Discreto a proposito: esta para el operador, no para el cliente. */
+.btn-bloquear {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 320;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: rgba(0, 0, 0, .45);
+    color: rgba(255, 255, 255, .45);
+    font-size: 17px;
+    cursor: pointer;
+    display: none;
+}
+
+    .btn-bloquear:hover {
+        color: #fff;
+        background: rgba(0, 0, 0, .7);
+    }
+
+    .btn-bloquear.visible {
+        display: block;
+    }
+
+/* -------------------------------------------------------- Dialogo --- */
+/* Confirmacion propia, con el mismo lenguaje del juego. El confirm() del
+   navegador rompe la estetica en plena pantalla, y una libreria externa
+   obligaria a tener internet: el pedestal debe funcionar sin el. */
+.capa-dialogo {
+    z-index: 450;
+}
+
+.tarjeta-dialogo {
+    background: linear-gradient(180deg, #1E1206 0%, #0B0705 100%);
+    border: 2px solid var(--oro);
+    border-radius: clamp(14px, 2.6vh, 26px);
+    box-shadow: 0 0 6vh rgba(240, 196, 25, .25), 0 2vh 6vh rgba(0, 0, 0, .8);
+    width: min(90vw, 460px);
+    padding: clamp(20px, 3.6vh, 36px) clamp(18px, 3vw, 32px);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.4vh, 16px);
+    animation: aparecer .3s cubic-bezier(.2, .9, .3, 1.2) both;
+}
+
+.dialogo-icono {
+    font-size: clamp(30px, 5vh, 50px);
+    color: var(--oro);
+    line-height: 1;
+}
+
+.tarjeta-dialogo h2 {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(17px, 2.8vh, 28px);
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.tarjeta-dialogo .tenue {
+    font-size: clamp(12px, 1.9vh, 18px);
+    margin: 0 0 6px;
+}
+
+.tarjeta-dialogo .botones {
+    display: flex;
+    gap: clamp(8px, 1.4vw, 16px);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.tarjeta-dialogo .boton {
+    flex: 0 1 auto;
+    min-height: clamp(40px, 6vh, 58px);
+    padding: 0 clamp(16px, 2.6vw, 34px);
+    font-size: clamp(13px, 2.1vh, 22px);
+}
+
+/* ---------------------------------------------------------- Loader --- */
+/* Tapa la pantalla mientras se relee la ruleta al desbloquear.
+   Las declaraciones van con !important porque kiosco.css se carga antes y
+   define .aro-carga con margenes propios para la pantalla de carga inicial:
+   sin esto, el aro hereda ese margen y el velo queda como un bloque suelto
+   arriba, sin cubrir nada. */
+.velo-carga {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 350;
+    display: none;
+    place-items: center;
+    background: rgba(0, 0, 0, .78);
+    backdrop-filter: blur(3px);
+}
+
+    .velo-carga.visible {
+        display: grid !important;
+    }
+
+    /* Sin la clase no debe verse NADA suyo. Un loader colgado tapa la terminal
+   sin dejar salida, y en un pedestal eso es peor que cualquier otro fallo. */
+    .velo-carga:not(.visible) {
+        display: none !important;
+    }
+
+    .velo-carga .carga-contenido {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Se neutraliza el margen que trae de kiosco.css. */
+    .velo-carga .aro-carga {
+        width: clamp(44px, 8vh, 80px) !important;
+        height: clamp(44px, 8vh, 80px) !important;
+        margin: 0 !important;
+    }
+
+    .velo-carga .carga-contenido p {
+        margin: clamp(10px, 1.8vh, 20px) 0 0;
+        color: var(--texto-tenue);
+        font-size: clamp(12px, 1.9vh, 18px);
+        letter-spacing: .04em;
+    }

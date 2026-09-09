@@ -1,0 +1,60 @@
+@page
+@model RuletaGame.Web.Pages.Ruletas.EditarModel
+@{
+    ViewData["Titulo"] = Model.EsNueva ? "Nueva ruleta" : "Editar ruleta";
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>@(Model.EsNueva ? "Nueva ruleta" : "Editar ruleta")</h1>
+        <p>
+            @(Model.EsNueva
+                ? "Despues de crearla vas a poder cargarle los premios."
+                : "Los cambios se aplican al pedestal cuando vuelve a standby.")
+        </p>
+    </div>
+    <a class="btn" href="/Ruletas"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
+
+<form method="post" style="max-width:640px">
+    <input type="hidden" asp-for="Datos.RuletaId" />
+
+    <div class="panel entra">
+        <div asp-validation-summary="ModelOnly" class="aviso aviso-error"></div>
+
+        <div class="campo">
+            <label asp-for="Datos.Nombre">Nombre</label>
+            <input class="control" asp-for="Datos.Nombre" placeholder="Ruleta de verano" autofocus />
+            <span asp-validation-for="Datos.Nombre" class="error-campo"></span>
+        </div>
+
+        <div class="campo">
+            <label asp-for="Datos.Descripcion">Descripcion</label>
+            <textarea class="control" asp-for="Datos.Descripcion" rows="3"
+                      placeholder="Para que sirve esta ruleta, en que campana se usa..."></textarea>
+            <span asp-validation-for="Datos.Descripcion" class="error-campo"></span>
+        </div>
+
+        <div class="campo">
+            <label>Estado</label>
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;
+                          letter-spacing:normal;font-weight:400;cursor:pointer">
+                <input type="checkbox" asp-for="Datos.Activo" class="form-check-input" style="margin:0" />
+                <span>Habilitada</span>
+            </label>
+            <div class="ayuda">Una ruleta deshabilitada no se puede enviar a un pedestal.</div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:22px">
+            <button type="submit" class="btn btn-principal">
+                <i class="bi bi-check-lg"></i>
+                @(Model.EsNueva ? "Crear y cargar premios" : "Guardar cambios")
+            </button>
+            <a class="btn" href="/Ruletas">Cancelar</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

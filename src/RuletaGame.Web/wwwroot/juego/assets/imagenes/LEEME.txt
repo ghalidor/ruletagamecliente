@@ -1,0 +1,29 @@
+IMAGENES DE LA RULETA
+=====================
+
+Copia aqui los PNG de la carpeta legacy Content/assets/imagenesruleta/.
+Los nombres deben ser EXACTAMENTE estos:
+
+  OBLIGATORIAS (las dibuja el canvas)
+    ruleta.png                      fondo de la rueda
+    borderuleta.png                 aro exterior
+    sombratajadas.png               sombra sobre las tajadas
+    spin.png                        logo del boton central
+    spinborde.png                   aro del boton central
+    circulonegrotajadas.png         tachon negro entre tajadas
+    circulonegrotajadassombra.png   sombra del tachon
+    flechacirculo.png               flecha roja del puntero
+    bordeluz1.png                   lampara chica
+    bordeluz2.png                   lampara mediana
+    bordeluz3.png                   lampara grande
+
+  OPCIONALES (interfaz)
+    copa.png       icono del modal de premio
+    cabecera.png   solo se muestra si la pantalla mide 1270px o mas de alto
+    pie.png        idem
+
+Si falta alguna, el kiosco arranca igual y avisa por consola cual falta:
+es preferible una rueda incompleta a una pantalla negra en el pedestal.
+
+Las tres lamparas se alternan y ahora se ANIMAN (corren por el aro).
+En el sistema original estaban quietas.

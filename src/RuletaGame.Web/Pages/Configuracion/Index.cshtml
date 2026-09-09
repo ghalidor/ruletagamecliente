@@ -1,0 +1,411 @@
+@page
+@using RuletaGame.Application.Servicios
+@model RuletaGame.Web.Pages.Configuracion.IndexModel
+@{
+    ViewData["Titulo"] = "Ajustes";
+    var e = Model.EstadoHoy;
+
+    // Cada parametro pertenece a un grupo. Antes iban todos en una columna
+    // sin orden: la duracion del giro pegada a los reintentos de envio, y
+    // habia que recorrer los dieciseis para encontrar uno.
+    var grupos = new (string Id, string Titulo, string Icono, string Bajada, string[] Claves)[]
+    {
+        ("juego", "El juego", "bi-dice-5",
+         "Como se ve y se comporta la ruleta en el pedestal.",
+         ["MONEDA_SIMBOLO", "GIRO_DURACION_MS", "GIRO_VUELTAS",
+          "CICLO_HABILITADO", "STANDBY_TIMEOUT_SEGUNDOS"]),
+
+        ("premios", "Premios y tope", "bi-cash-coin",
+         "Cuanto se puede repartir por dia.",
+         ["TOPE_DIARIO_MONTO"]),
+
+        ("clientes", "Registro de clientes", "bi-person-vcard",
+         "Que datos se piden y como se validan.",
+         ["CLIENTE_PIDE_DATOS", "REGISTRO_TIMEOUT_SEGUNDOS",
+          "CLIENTE_CORREO_OBLIGATORIO", "CLIENTE_TELEFONO_OBLIGATORIO",
+          "AUTOCOMPLETAR_DNI"]),
+
+        ("integracion", "Integraciones", "bi-plug",
+         "Comunicacion con otros sistemas.",
+         ["ENVIAR_CLIENTE_EXTERNO", "ENVIO_MAX_INTENTOS"]),
+
+        ("terminales", "Terminales", "bi-tablet",
+         "Comportamiento de las terminales web.",
+         ["WEB_SESION_HORAS"])
+    };
+
+
+    // Las claves que el codigo no conoce igual deben poder editarse: si
+    // alguien agrega una por SQL, no debe quedar invisible.
+    var conocidas = grupos.SelectMany(g => g.Claves).ToHashSet();
+    var sueltas = Model.Lista.Where(c => !conocidas.Contains(c.Clave)).ToList();
+}
+
+<div class="cabecera-pagina">
+    <div>
+        <h1>Ajustes</h1>
+        <p>Los cambios llegan al pedestal la proxima vez que carga una ruleta.</p>
+    </div>
+</div>
+
+@* ------------------------------------------------ Tope de hoy, arriba --- *@
+<div class="panel entra panel-tope">
+    <div class="tope-cifras">
+        <div>
+            <div class="cifra-etiqueta">Tope aplicado hoy</div>
+            <div class="cifra-valor num">
+                @(e.SinLimite ? "Sin limite" : e.Monto.ToString("N2"))
+            </div>
+            <div class="cifra-pie">@e.Descripcion</div>
+        </div>
+
+        <div>
+            <div class="cifra-etiqueta">Consumido</div>
+            <div class="cifra-valor num">@e.Consumido.ToString("N2")</div>
+        </div>
+
+        <div>
+            <div class="cifra-etiqueta">Disponible</div>
+            <div class="cifra-valor num" style="color:var(--verde)">
+                @(e.SinLimite ? "—" : e.Restante.ToString("N2"))
+            </div>
+        </div>
+
+        @if(!e.SinLimite) {
+            <div style="flex:1;min-width:180px;align-self:center">
+                <div class="barra"><div style="width:@e.PorcentajeUsado%"></div></div>
+                <div class="ayuda" style="margin-top:6px">@e.PorcentajeUsado% usado</div>
+            </div>
+        }
+    </div>
+
+    @if(!string.IsNullOrWhiteSpace(e.Nota)) {
+        <p class="ayuda" style="margin:12px 0 0">
+            <i class="bi bi-sticky"></i> @e.Nota
+        </p>
+    }
+</div>
+
+@* ------------------------------------------------------------ Pestanas --- *@
+<div class="pestanas entra" role="tablist">
+    @foreach(var (id, titulo, icono, _, _) in grupos) {
+        <button class="pestana @(id == "juego" ? "activa" : "")" data-grupo="@id" role="tab">
+            <i class="bi @icono"></i> @titulo
+        </button>
+    }
+
+    @if(sueltas.Count > 0) {
+        <button class="pestana" data-grupo="otros" role="tab">
+            <i class="bi bi-three-dots"></i> Otros
+        </button>
+    }
+
+    <button class="pestana" data-grupo="fechas" role="tab">
+        <i class="bi bi-calendar-event"></i> Tope por fecha
+    </button>
+</div>
+
+@foreach(var (id, titulo, icono, bajada, claves) in grupos) {
+    var items = claves.Select(k => Model.Lista.FirstOrDefault(c => c.Clave == k))
+                      .Where(c => c is not null).ToList();
+
+    <div class="hoja @(id == "juego" ? "" : "oculta")" data-hoja="@id">
+        <div class="panel">
+            <div class="panel-titulo">
+                <div>
+                    <h2><i class="bi @icono"></i> @titulo</h2>
+                    <p class="ayuda" style="margin:4px 0 0">@bajada</p>
+                </div>
+            </div>
+
+            @if(items.Count == 0) {
+                <div class="vacio" style="padding:30px">
+                    <p>No hay parametros en este grupo.</p>
+                </div>
+            } else {
+                <div class="rejilla-ajustes">
+                    @foreach(var c in items!) {
+                        <partial name="_Parametro" model="c" />
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if(sueltas.Count > 0) {
+    <div class="hoja oculta" data-hoja="otros">
+        <div class="panel">
+            <div class="panel-titulo">
+                <div>
+                    <h2><i class="bi bi-three-dots"></i> Otros</h2>
+                    <p class="ayuda" style="margin:4px 0 0">
+                        Parametros agregados fuera de los grupos conocidos.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rejilla-ajustes">
+                @foreach(var c in sueltas) {
+                    <partial name="_Parametro" model="c" />
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* ------------------------------------------------------- Tope por fecha --- *@
+<div class="hoja oculta" data-hoja="fechas">
+    <div class="rejilla rejilla-2">
+        <div class="panel">
+            <div class="panel-titulo">
+                <div>
+                    <h2><i class="bi bi-calendar-plus"></i> Excepcion por fecha</h2>
+                    <p class="ayuda" style="margin:4px 0 0">
+                        Pisa el tope base solo para un dia, sin tocar el valor permanente.
+                    </p>
+                </div>
+            </div>
+
+            <div class="campo">
+                <label for="fechaTope">Fecha</label>
+                <input class="control" id="fechaTope" placeholder="dd/mm/aaaa" />
+            </div>
+
+            <div class="campo">
+                <label for="montoTope">Monto para ese dia</label>
+                <input class="control num" id="montoTope" type="number" step="0.01" min="0" />
+            </div>
+
+            <div class="campo">
+                <label for="notaTope">Nota (opcional)</label>
+                <input class="control" id="notaTope"
+                       placeholder="Feriado, promocion de aniversario..." />
+            </div>
+
+            <button class="btn btn-principal" id="btnTope" style="width:100%">
+                <i class="bi bi-calendar-plus"></i> Guardar excepcion
+            </button>
+        </div>
+
+        <div class="panel">
+            <div class="panel-titulo"><h2>Excepciones vigentes</h2></div>
+
+            @if(Model.Excepciones.Count == 0) {
+                <div class="vacio" style="padding:34px">
+                    <div class="icono"><i class="bi bi-calendar-x"></i></div>
+                    <p>Sin excepciones. Todos los dias usan el tope base.</p>
+                </div>
+            } else {
+                @foreach(var t in Model.Excepciones) {
+                    <div class="fila-excepcion">
+                        <div>
+                            <span class="num" style="font-weight:600">
+                                @t.Fecha.ToString("dd/MM/yyyy")
+                            </span>
+                            <span class="num" style="color:var(--marca);margin-left:8px">
+                                @t.Monto.ToString("N2")
+                            </span>
+                            @if(!string.IsNullOrWhiteSpace(t.Nota)) {
+                                <div style="font-size:.8rem;color:var(--texto-tenue)">@t.Nota</div>
+                            }
+                        </div>
+                        <button class="btn btn-sm btn-icono btn-peligro"
+                                data-quitar="@t.Fecha.ToString("d/M/yyyy")" title="Quitar">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Estilos {
+    <style>
+        .panel-tope {
+            margin-bottom: 18px;
+        }
+
+        .tope-cifras {
+            display: flex;
+            gap: clamp(18px, 3vw, 44px);
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+            .tope-cifras .cifra-valor {
+                font-size: 1.5rem;
+            }
+
+        /* Pestanas: con dieciseis parametros, verlos todos de golpe obliga a
+               recorrer la pagina entera para encontrar uno. */
+        .pestanas {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--borde);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .pestana {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--texto-medio);
+            font-family: var(--fuente);
+            font-weight: 600;
+            font-size: .9rem;
+            padding: 9px 15px;
+            border-radius: var(--radio-sm);
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+
+            .pestana:hover {
+                background: var(--superficie-2);
+                color: var(--texto);
+            }
+
+            .pestana.activa {
+                background: var(--marca-suave);
+                color: var(--marca-fuerte);
+                border-color: color-mix(in srgb, var(--marca) 30%, transparent);
+            }
+
+        .hoja.oculta {
+            display: none;
+        }
+
+        /* Dos columnas en pantalla ancha: la lista dejaba de caber en un vistazo */
+        .rejilla-ajustes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 4px 26px;
+        }
+
+        .parametro {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+
+            .parametro:last-child {
+                border-bottom: none;
+            }
+
+            .parametro .campo {
+                margin: 0;
+            }
+
+        .fila-excepcion {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+
+            .fila-excepcion:last-child {
+                border-bottom: none;
+            }
+
+        @@media (max-width: 640px) {
+            .tope-cifras {
+                gap: 16px;
+            }
+
+                .tope-cifras > div {
+                    flex: 1 1 45%;
+                }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        /* ------------------------------------------------------------ Pestanas */
+        const pestanas = document.querySelectorAll('.pestana');
+        const hojas = document.querySelectorAll('.hoja');
+
+        function mostrar(grupo) {
+            pestanas.forEach(p => p.classList.toggle('activa', p.dataset.grupo === grupo));
+            hojas.forEach(h => h.classList.toggle('oculta', h.dataset.hoja !== grupo));
+
+            // Se recuerda entre visitas: el operador suele volver al mismo grupo.
+            localStorage.setItem('ajustesGrupo', grupo);
+        }
+
+        pestanas.forEach(p => p.addEventListener('click', () => mostrar(p.dataset.grupo)));
+
+        const guardado = localStorage.getItem('ajustesGrupo');
+        if (guardado && document.querySelector(`[data-hoja="${guardado}"]`)) mostrar(guardado);
+
+        /* -------------------------------------------- Traduccion del giro a seg */
+        const campoGiro = document.getElementById('cfg-GIRO_DURACION_MS');
+        const textoGiro = document.getElementById('giroSegundos');
+
+        function pintarSegundos() {
+            if (!campoGiro || !textoGiro) return;
+            textoGiro.innerHTML = `<strong>${((parseInt(campoGiro.value) || 0) / 1000).toFixed(1)} segundos</strong>`;
+        }
+        campoGiro?.addEventListener('input', pintarSegundos);
+        pintarSegundos();
+
+        /* -------------------------------------------------------- Guardar valor */
+        document.querySelectorAll('[data-guardar]').forEach(boton => {
+            boton.addEventListener('click', async () => {
+                const clave = boton.dataset.guardar;
+                const valor = document.getElementById('cfg-' + clave).value;
+
+                const r = await S3K.post(
+                    `/Configuracion?handler=Guardar&clave=${encodeURIComponent(clave)}` +
+                    `&valor=${encodeURIComponent(valor)}`);
+
+                S3K.aviso(r.datos?.mensaje || r.mensaje, r.datos?.exito ? 'ok' : 'error');
+            });
+        });
+
+        /* ----------------------------------------------------- Tope por fecha */
+        S3K.fecha('#fechaTope', { minDate: 'today' });
+
+        document.getElementById('btnTope').addEventListener('click', async () => {
+            const fecha = document.getElementById('fechaTope').value;
+            const monto = document.getElementById('montoTope').value;
+            const nota = document.getElementById('notaTope').value;
+
+            if (!fecha || monto === '') {
+                S3K.aviso('Completa la fecha y el monto.', 'error');
+                return;
+            }
+
+            const r = await S3K.post(
+                `/Configuracion?handler=TopeFecha&fecha=${encodeURIComponent(fecha)}` +
+                `&monto=${monto}&nota=${encodeURIComponent(nota)}`);
+
+            if (r.datos?.exito) {
+                S3K.aviso(r.datos.mensaje, 'ok');
+                setTimeout(() => location.reload(), 700);
+            } else {
+                S3K.aviso(r.datos?.mensaje || r.mensaje, 'error');
+            }
+        });
+
+        document.querySelectorAll('[data-quitar]').forEach(boton => {
+            boton.addEventListener('click', async () => {
+                const r = await S3K.post(
+                    `/Configuracion?handler=QuitarTope&fecha=${encodeURIComponent(boton.dataset.quitar)}`);
+
+                if (r.datos?.exito) {
+                    S3K.aviso(r.datos.mensaje, 'ok');
+                    setTimeout(() => location.reload(), 700);
+                }
+            });
+        });
+    </script>
+}

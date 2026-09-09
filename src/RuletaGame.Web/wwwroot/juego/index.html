@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Como aplicacion instalada en la tablet: sin barra del navegador -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/juego/manifest.json" />
+
+    <title>Ruleta</title>
+    <link rel="stylesheet" href="/juego/pantallas/kiosco.css" />
+    <link rel="stylesheet" href="/juego/pantallas/web.css" />
+</head>
+<body>
+
+    <!-- ==================== Acceso a la terminal =======================
+         Tapa todo hasta que se escribe la clave. Una vez dentro no se
+         vuelve a pedir hasta que alguien toque "Bloquear terminal".   -->
+    <div id="capaAcceso" class="capa capa-visible capa-acceso">
+        <div class="tarjeta-acceso">
+            <div class="acceso-marca">
+                <span class="disco-marca"></span>
+            </div>
+
+            <h2>Terminal de ruleta</h2>
+            <p class="tenue">Escribe la clave de esta terminal para comenzar.</p>
+
+            <input id="campoClave" class="campo-clave" type="password"
+                   inputmode="text" autocomplete="off" placeholder="Clave" />
+
+            <div id="errorAcceso" class="error-dni"></div>
+
+            <button id="btnAcceder" class="boton boton-oro">Entrar</button>
+        </div>
+    </div>
+
+    <!-- La rueda. Ocupa toda la pantalla. -->
+    <canvas id="lienzo"></canvas>
+
+    <!-- Cabecera y pie: solo se muestran en pantalla vertical alta -->
+    <img id="cabecera" class="pieza-marco" src="/juego/assets/imagenes/cabecera.png" alt="" hidden />
+    <img id="pie"      class="pieza-marco pieza-pie" src="/juego/assets/imagenes/pie.png" alt="" hidden />
+
+    <!-- ================================================== Carga inicial -->
+    <div id="capaCarga" class="capa capa-visible">
+        <div class="cargando">
+            <div class="aro-carga"></div>
+            <p>Preparando la ruleta...</p>
+        </div>
+    </div>
+
+    <!-- ================================================== Sin ruleta -->
+    <div id="capaSinRuleta" class="capa">
+        <div class="mensaje-centro">
+            <div class="icono-grande">&#9203;</div>
+            <h1>Pedestal en espera</h1>
+            <p>Aun no hay una ruleta cargada.</p>
+            <p class="tenue">El operador puede enviarla desde la tablet.</p>
+        </div>
+    </div>
+
+    <!-- ============================= Standby: rueda bloqueada ==========
+         La rueda se ve pero no responde. Sin esto, cualquiera que roce el
+         pedestal al pasar dispara un giro y se pierde una jugada.          -->
+    <div id="capaStandby" class="capa">
+        <div class="velo-bloqueo"></div>
+
+        <button id="btnJugar" class="boton-jugar">
+            <span class="boton-jugar-texto">JUGAR</span>
+        </button>
+
+        <div class="invitacion">
+            <h1 id="tituloRuleta"></h1>
+            <div class="toca">TOCA PARA COMENZAR</div>
+        </div>
+    </div>
+
+    <!-- ======================= Listo: rueda desbloqueada ===============
+         Solo el rotulo; la capa no intercepta toques para que lleguen
+         al canvas.                                                        -->
+    <div id="capaListo" class="capa">
+        <div class="invitacion">
+            <h1 id="tituloRuletaListo"></h1>
+            <div class="toca toca-lista">GIRA LA RULETA</div>
+            <div class="cuenta-bloqueo">
+                Se bloquea en <span id="segundosBloqueo">15</span>s
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================== Resultado -->
+    <div id="capaResultado" class="capa capa-modal">
+        <div class="tarjeta-premio">
+            <img class="copa" src="/juego/assets/imagenes/copa.png" alt="" onerror="this.hidden=true" />
+
+            <div class="felicidades">&#161;FELICIDADES!</div>
+            <p class="ganaste">Ganaste</p>
+
+            <div id="textoPremio" class="premio"></div>
+
+            <div class="botones">
+                <button id="btnRegistrarme" class="boton boton-oro">
+                    Registrarme
+                </button>
+                <button id="btnContinuar" class="boton">
+                    Continuar
+                </button>
+            </div>
+
+            <p class="cuenta-atras">
+                Vuelve a la pantalla de inicio en <span id="segundosRestantes">20</span>s
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== Registro paso 1: documento ================= -->
+    <div id="capaDocumento" class="capa capa-modal">
+        <div class="tarjeta-registro">
+            <h2>Ingresa tu documento</h2>
+
+            <div class="tipos-documento" id="tiposDocumento"></div>
+
+            <div id="casillasDocumento" class="casillas"></div>
+            <div id="errorDocumento" class="error-dni"></div>
+
+            <div id="tecladoDocumento" class="teclado teclado-numerico"></div>
+
+            <div class="botones">
+                <button id="btnSiguienteDatos" class="boton boton-oro" disabled>
+                    Continuar
+                </button>
+                <button id="btnCancelarDocumento" class="boton">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Registro paso 2: datos ====================== -->
+    <div id="capaDatos" class="capa capa-modal">
+        <div class="tarjeta-datos">
+            <div class="datos-cabecera">
+                <h2>Tus datos</h2>
+                <span class="etiqueta-documento" id="etiquetaDocumento"></span>
+            </div>
+
+            <div class="datos-cuerpo">
+                <div class="datos-campos" id="camposCliente">
+                    <button class="campo-tactil" data-campo="nombres">
+                        <span class="campo-etiqueta">Nombres <b>*</b></span>
+                        <span class="campo-valor" data-valor="nombres"></span>
+                    </button>
+
+                    <button class="campo-tactil" data-campo="apellidoPaterno">
+                        <span class="campo-etiqueta">Apellido paterno <b>*</b></span>
+                        <span class="campo-valor" data-valor="apellidoPaterno"></span>
+                    </button>
+
+                    <button class="campo-tactil" data-campo="apellidoMaterno">
+                        <span class="campo-etiqueta">Apellido materno</span>
+                        <span class="campo-valor" data-valor="apellidoMaterno"></span>
+                    </button>
+
+                    <button class="campo-tactil" data-campo="correo">
+                        <span class="campo-etiqueta">Correo <em id="marcaCorreo">(opcional)</em></span>
+                        <span class="campo-valor" data-valor="correo"></span>
+                    </button>
+
+                    <button class="campo-tactil" data-campo="telefono">
+                        <span class="campo-etiqueta">Telefono <em id="marcaTelefono">(opcional)</em></span>
+                        <span class="campo-valor" data-valor="telefono"></span>
+                    </button>
+                </div>
+
+                <div class="datos-teclado">
+                    <div class="teclado-titulo" id="tituloTeclado">Nombres</div>
+                    <div id="tecladoDatos" class="teclado teclado-texto"></div>
+                </div>
+            </div>
+
+            <div class="notificaciones">
+                <div class="notif-titulo">Como quieres que te contactemos</div>
+
+                <div class="notif-opciones">
+                    <label class="notif-opcion" data-canal="whatsapp">
+                        <input type="checkbox" id="chkWhatsapp" />
+                        <span class="notif-icono">&#128172;</span>
+                        <span>WhatsApp</span>
+                    </label>
+
+                    <label class="notif-opcion" data-canal="sms">
+                        <input type="checkbox" id="chkSms" />
+                        <span class="notif-icono">&#128241;</span>
+                        <span>SMS</span>
+                    </label>
+
+                    <label class="notif-opcion" data-canal="llamada">
+                        <input type="checkbox" id="chkLlamada" />
+                        <span class="notif-icono">&#128222;</span>
+                        <span>Llamada</span>
+                    </label>
+
+                    <label class="notif-opcion" data-canal="email">
+                        <input type="checkbox" id="chkEmail" />
+                        <span class="notif-icono">&#9993;</span>
+                        <span>Correo</span>
+                    </label>
+
+                    <label class="notif-opcion notif-negativa" data-canal="ninguno">
+                        <input type="checkbox" id="chkNinguno" />
+                        <span class="notif-icono">&#128683;</span>
+                        <span>No autorizo</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="errorDatos" class="error-dni"></div>
+
+            <div class="botones">
+                <button id="btnGuardarCliente" class="boton boton-oro" disabled>Aceptar</button>
+                <button id="btnCancelarDatos" class="boton">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avisos flotantes -->
+    <div id="zonaToaster" class="zona-toaster"></div>
+    <div id="avisoTiempo" class="aviso-tiempo"></div>
+
+    <!-- ================================================== Error -->
+    <div id="capaError" class="capa capa-modal">
+        <div class="tarjeta-premio">
+            <div class="icono-grande">&#9888;</div>
+            <h2 id="tituloError">No se pudo continuar</h2>
+            <p id="textoError" class="tenue"></p>
+
+            <div class="botones">
+                <button id="btnCerrarError" class="boton boton-oro">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostico. Solo con modoDepuracion activo. -->
+    <div id="diagnostico" class="diagnostico" hidden></div>
+
+    <!-- Boton discreto para bloquear la terminal -->
+    <button id="btnBloquear" class="btn-bloquear" title="Bloquear terminal">&#128274;</button>
+
+    <script type="module" src="/juego/pantallas/web.js"></script>
+</body>
+</html>

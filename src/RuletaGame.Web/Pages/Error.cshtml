@@ -1,0 +1,65 @@
+@page
+@model ErrorModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Error · Gestor Ruleta</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/gestor.css" />
+    <script>
+        // Antes de pintar, para evitar el destello del tema equivocado.
+        document.documentElement.setAttribute('data-tema', localStorage.getItem('tema') || 'claro');
+    </script>
+</head>
+<body>
+    <button class="btn-tema-flotante" id="btnTemaFlotante" aria-label="Cambiar tema">
+        <i class="bi bi-moon-stars" id="iconoTemaFlotante"></i>
+    </button>
+
+    <div class="pantalla-login">
+        <div class="caja-login entra">
+                        <div style="text-align:center">
+                <i class="bi bi-exclamation-triangle-fill" style="font-size:2.6rem;color:var(--marca)"></i>
+
+                <h2 style="margin:14px 0 8px">Algo salio mal</h2>
+                <p style="color:var(--texto-medio);font-size:.9rem">
+                    El detalle quedo registrado en el log del servicio.
+                </p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.IdSolicitud))
+                {
+                    <p class="num" style="font-size:.78rem;color:var(--texto-tenue);
+                              background:var(--fondo);padding:8px;border-radius:var(--radio-sm);
+                              box-shadow:var(--sombra-1);word-break:break-all">@Model.IdSolicitud</p>
+                }
+
+                <a class="btn btn-principal" href="/" style="margin-top:14px">
+                    <i class="bi bi-house-fill"></i> Volver al tablero
+                </a>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const raiz  = document.documentElement;
+            const icono = document.getElementById('iconoTemaFlotante');
+
+            function pintar(tema) {
+                raiz.setAttribute('data-tema', tema);
+                localStorage.setItem('tema', tema);
+                icono.className = tema === 'oscuro' ? 'bi bi-sun' : 'bi bi-moon-stars';
+            }
+
+            pintar(localStorage.getItem('tema') || 'claro');
+
+            document.getElementById('btnTemaFlotante').onclick = () =>
+                pintar(raiz.getAttribute('data-tema') === 'oscuro' ? 'claro' : 'oscuro');
+        })();
+    </script>
+</body>
+</html>

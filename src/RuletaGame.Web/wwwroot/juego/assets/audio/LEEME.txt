@@ -1,0 +1,19 @@
+AUDIOS
+======
+
+Copia aqui los archivos de Content/assets/audio/:
+
+  wheel2.wav   sonido del giro
+  win.mp3      sonido de premio
+  beep.mp3     realimentacion del teclado del DNI
+
+Dos correcciones respecto del sistema original:
+
+1. El loop del giro se hacia con un truco: cuando currentTime pasaba 28.7 lo
+   devolvia a 28.4, lo que producia un clic audible en cada vuelta. Ahora se
+   usa el loop nativo, que no corta, y el sonido se desvanece al frenar.
+
+2. El sonido de premio se llamaba con play() y pause() en la misma linea, asi
+   que en la practica nunca se escuchaba. Ahora suena.
+
+Si falta un archivo, el kiosco funciona sin sonido y lo avisa por consola.
